@@ -209,7 +209,7 @@ int creat (const char *path,
     * #include < sys/stat.h> 
     * #include < fcntl.h> 
 
-    Dins d'aquestes llibreries, es produeixen les següents crides a sistema:
+    Dins d'aquestes llibreries, es produeixen les següents crides a sistema (Creat per l'IA):
     * open()	sys_open	Abre archivo en el kernel
     * creat()	sys_open	Crear archivo (especialización de open)
     * close()	sys_close	Cierra descriptor de archivo
@@ -348,6 +348,76 @@ Solució:
 argc=1
 
 argv[argc] is (nil)
+
+¿Por qué este código es peligroso?
+
+c
+int *p = malloc(sizeof(int));
+free(p);
+printf("%d", *p);
+📚 Nivel Intermedio
+En el Makefile, ¿qué hace exactamente esta línea?
+
+makefile
+EXECUTABLES = $(patsubst $(SRC)/%.c,$(BIN)/%,$(SOURCES))
+¿Cuál es la diferencia entre estos dos usos de fflush?
+
+c
+fflush(stdout);    // Caso 1
+fflush(NULL);      // Caso 2
+Si ejecuto: ./programa arg1 arg2
+
+¿Cuánto vale argc?
+
+¿Qué contiene argv[0]?
+
+¿Qué contiene argv[argc]?
+
+Explica qué ocurre con la memoria en este proceso:
+
+c
+int main() {
+    while(1) {
+        int *p = malloc(1024);  // 1KB
+        // No hay free()
+    }
+}
+🎯 Nivel Avanzado
+En el contexto de descriptores de archivo:
+
+¿Qué pasa si cierro el descriptor 0 (stdin)?
+
+¿Puede un proceso heredar descriptores de su padre?
+
+En el Makefile, ¿por qué necesitamos .PHONY?
+
+makefile
+.PHONY: all clean help
+¿Cómo gestiona el SO la ilusión de "máquina virtual" para cada proceso en términos de:
+
+Memoria
+
+CPU
+
+Dispositivos de E/S
+
+Si tengo este código, ¿qué descriptor usará el archivo?
+
+c
+int main() {
+    close(1);  // Cierro stdout
+    int fd = open("output.txt", O_WRONLY);
+    printf("¿Dónde va este texto?");
+}
+🔧 Sobre el Makefile
+¿Qué problema soluciona esta regla?
+
+makefile
+$(BIN):
+    mkdir -p $(BIN)
+Si cambio un archivo .c, ¿el Makefile recompila solo ese archivo o todos? ¿Por qué?
+
+¿Para qué sirven los flags -Wall -Wextra -O2 en la compilación?
 
 
 
