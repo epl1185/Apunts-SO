@@ -349,30 +349,59 @@ argc=1
 
 argv[argc] is (nil)
 
+#### Exercici 4-13 Preguntes Teòriques-Pràctiques
+
+##### Ex 4
 ¿Por qué este código es peligroso?
 
-c
+```c
 int *p = malloc(sizeof(int));
 free(p);
 printf("%d", *p);
-📚 Nivel Intermedio
+```
+
+**Resposta**:
+
+Aquest codi és perillós ja s'assigna un punter amb la mida d'un enter (4 bits), però dins de l'adreça de memòria no s'assigna res. Per tant, al fer el free, realment no es "dessasigna" res. Per tant, s'hauria de printar l'adreça de memòria si no s'ha donat un error abans.
+
+##### Ex 5
 En el Makefile, ¿qué hace exactamente esta línea?
 
 makefile
 EXECUTABLES = $(patsubst $(SRC)/%.c,$(BIN)/%,$(SOURCES))
+
+Aquesta línia genera que tots els arxius *.c siguin executables i els guarda al directori BIN. 
+
+##### Ex 6
+
 ¿Cuál es la diferencia entre estos dos usos de fflush?
 
-c
+```c
 fflush(stdout);    // Caso 1
 fflush(NULL);      // Caso 2
+```
+
+En el primer cas, tenim que stdout és un descriptor de fitxer, per tant, si posem stdout simplement estem **netejant** el buffer del descripitor de fitxer, per exemple si un codi imprimis a,b,c després un altre codi no imprimeix res i ultimement un tercer codi on també s'imprimis alguna cosa, si executem els tres codis a la vegada tindrem que hi ha hagut un salt de línia inesperat, per tant la funció de fflush és netejar el buffer.
+
+Altrament, en el segon cas, tenim que simplement s'apunta a una adreça de memòria nula on hi pot haver qualsevol contingut.
+
+##### Ex 7
+
 Si ejecuto: ./programa arg1 arg2
 
 ¿Cuánto vale argc?
 
+2
+
 ¿Qué contiene argv[0]?
+
+'arg1'
 
 ¿Qué contiene argv[argc]?
 
+[arg1, \n, arg2]
+
+##### Ex 8
 Explica qué ocurre con la memoria en este proceso:
 
 c
@@ -382,34 +411,51 @@ int main() {
         // No hay free()
     }
 }
-🎯 Nivel Avanzado
-En el contexto de descriptores de archivo:
+
+La funció malloc assigna 1024 bytes a un punter que apunta a una direcció de memòria, com que no s'allibera l'adreça de memòria, com que és un bucle infinit, s'assignen 1024 bytes a una altra adreça de memòria fins que la memòria no pugui soportar més.
+
+##### Ex 9
 
 ¿Qué pasa si cierro el descriptor 0 (stdin)?
 
-¿Puede un proceso heredar descriptores de su padre?
+Doncs que, si es necessita netejar el buffer d'entrada no podrem, ja que hem tancar el descriptor stdin. Ex: En un mateix codi pot passar que volem imprimir:
+
+```c
+printf("%c,%c,%c", a, b, c);
+```
+Però com que el descriptor de fitxer stdin no existeix, pot passar que si b = " " es printeji un salt de línia inesperat.
+
+##### Ex 10
 
 En el Makefile, ¿por qué necesitamos .PHONY?
 
 makefile
 .PHONY: all clean help
+
+Per crear el directori bin si no existeix, si el make tracta aixó com una execució, afegim .PHONY per que no ho faci.
+
+##### Ex 11
 ¿Cómo gestiona el SO la ilusión de "máquina virtual" para cada proceso en términos de:
 
-Memoria
+Memoria:
 
-CPU
+CPU:
 
-Dispositivos de E/S
+Dispositivos de E/S:
 
+##### Ex 12
 Si tengo este código, ¿qué descriptor usará el archivo?
 
 c
 int main() {
-    close(1);  // Cierro stdout
+    close(1);  
     int fd = open("output.txt", O_WRONLY);
     printf("¿Dónde va este texto?");
 }
-🔧 Sobre el Makefile
+
+Utilitzará stdin ja que s'utilitza la instrucció open omb la funció de només escriure.
+
+##### Ex 13
 ¿Qué problema soluciona esta regla?
 
 makefile
@@ -417,6 +463,7 @@ $(BIN):
     mkdir -p $(BIN)
 Si cambio un archivo .c, ¿el Makefile recompila solo ese archivo o todos? ¿Por qué?
 
+##### Ex 14
 ¿Para qué sirven los flags -Wall -Wextra -O2 en la compilación?
 
 
