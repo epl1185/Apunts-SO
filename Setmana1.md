@@ -220,6 +220,7 @@ int creat (const char *path,
     * malloc()	sys_brk / sys_mmap	Asigna memoria del heap
     * free()	sys_brk / sys_munmap	Libera memoria del heap
 
+Encara falta acabar més teoria.
 
 
 
