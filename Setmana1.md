@@ -364,13 +364,23 @@ printf("%d", *p);
 
 Aquest codi és perillós ja s'assigna un punter amb la mida d'un enter (4 bits), però dins de l'adreça de memòria no s'assigna res. Per tant, al fer el free, realment no es "dessasigna" res. Per tant, s'hauria de printar l'adreça de memòria si no s'ha donat un error abans.
 
+**Solució**:
+
+Després de free(p), el punter p és dangling (apunta a memòria alliberada). Accedir a *p és undefined behavior.
+
 ##### Ex 5
 En el Makefile, ¿qué hace exactamente esta línea?
 
 makefile
+
 EXECUTABLES = $(patsubst $(SRC)/%.c,$(BIN)/%,$(SOURCES))
 
+**Resposta**:
 Aquesta línia genera que tots els arxius *.c siguin executables i els guarda al directori BIN. 
+
+**Solució**:
+
+Aquesta línia transforma la llista de fitxers font (SOURCES) en una llista de noms d’objectius dins BIN, amb el mateix nom però sense .c. No converteix directament a executables, sinó que prepara els noms de destí.
 
 ##### Ex 6
 
@@ -381,25 +391,34 @@ fflush(stdout);    // Caso 1
 fflush(NULL);      // Caso 2
 ```
 
+**Resposta**
 En el primer cas, tenim que stdout és un descriptor de fitxer, per tant, si posem stdout simplement estem **netejant** el buffer del descripitor de fitxer, per exemple si un codi imprimis a,b,c després un altre codi no imprimeix res i ultimement un tercer codi on també s'imprimis alguna cosa, si executem els tres codis a la vegada tindrem que hi ha hagut un salt de línia inesperat, per tant la funció de fflush és netejar el buffer.
 
 Altrament, en el segon cas, tenim que simplement s'apunta a una adreça de memòria nula on hi pot haver qualsevol contingut.
 
+**Solució**
+fflush(NULL):Buida tots els buffers de sortida de tots els streams oberts
+
 ##### Ex 7
 
 Si ejecuto: ./programa arg1 arg2
+* ¿Cuánto vale argc?
 
-¿Cuánto vale argc?
+* ¿Qué contiene argv[0]?
 
-2
+* ¿Qué contiene argv[argc]?
 
-¿Qué contiene argv[0]?
+**Respostes**:
 
-'arg1'
+2, arg1, [arg1, \n, arg2]
 
-¿Qué contiene argv[argc]?
+**Solucions**:
 
-[arg1, \n, arg2]
+Diu que argc = 2 (error: seria 3, perquè sempre compta el nom del programa).
+
+Diu que argv[0] = 'arg1' (error: és "./programa").
+
+Diu que argv[argc] conté [arg1,\n,arg2] (error: és sempre NULL).
 
 ##### Ex 8
 Explica qué ocurre con la memoria en este proceso:
@@ -414,6 +433,10 @@ int main() {
 
 La funció malloc assigna 1024 bytes a un punter que apunta a una direcció de memòria, com que no s'allibera l'adreça de memòria, com que és un bucle infinit, s'assignen 1024 bytes a una altra adreça de memòria fins que la memòria no pugui soportar més.
 
+**Solució**:
+
+És correcte :)
+
 ##### Ex 9
 
 ¿Qué pasa si cierro el descriptor 0 (stdin)?
@@ -425,6 +448,10 @@ printf("%c,%c,%c", a, b, c);
 ```
 Però com que el descriptor de fitxer stdin no existeix, pot passar que si b = " " es printeji un salt de línia inesperat.
 
+**Solució**:
+
+Barreges stdin i sortida. Tancar descriptor 0 vol dir que les funcions que intentin llegir d’entrada estàndard fallaran (retornen -1 o EOF). No té res a veure amb printf.
+
 ##### Ex 10
 
 En el Makefile, ¿por qué necesitamos .PHONY?
@@ -432,16 +459,25 @@ En el Makefile, ¿por qué necesitamos .PHONY?
 makefile
 .PHONY: all clean help
 
+**Resposta**:
+
 Per crear el directori bin si no existeix, si el make tracta aixó com una execució, afegim .PHONY per que no ho faci.
+
+**Solució**:
+
+Dius que .PHONY és “per crear el directori bin si no existeix”. Error: .PHONY indica que una regla no correspon a un fitxer real, així make no confon objectius amb fitxers del mateix nom.
 
 ##### Ex 11
 ¿Cómo gestiona el SO la ilusión de "máquina virtual" para cada proceso en términos de:
 
-Memoria:
+Memoria: Fa que les adreçes reals de memòria, és a dir, la unitat de gestió de memòria tinguin les seves adreçes virtuals.
 
-CPU:
+Dispositivos de E/S:Permet als usuaris utilitzar un dispositiu de E/S (hardware) sense conèixer els detalls tècnics d’aquesta impresora.
 
-Dispositivos de E/S:
+**Solució**:
+
+Memòria → parles d’adreces virtuals, bé però incomplet.
+E/S → correcte, però massa genèric.
 
 ##### Ex 12
 Si tengo este código, ¿qué descriptor usará el archivo?
@@ -453,7 +489,13 @@ int main() {
     printf("¿Dónde va este texto?");
 }
 
-Utilitzará stdin ja que s'utilitza la instrucció open omb la funció de només escriure.
+**Resposta**:
+
+Utilitzará stdin ja que s'utilitza la instrucció open fa una crida a stdin.
+
+**Solució**:
+
+Dius que utilitzarà stdin. Error: close(1) tanca stdout, i el següent open assignarà el descriptor 1. Per tant, printf enviarà la sortida a output.txt.
 
 ##### Ex 13
 ¿Qué problema soluciona esta regla?
@@ -461,10 +503,39 @@ Utilitzará stdin ja que s'utilitza la instrucció open omb la funció de només
 makefile
 $(BIN):
     mkdir -p $(BIN)
+
+**Resposta**:
+
+Crea el directori bin si no existeix.
+
 Si cambio un archivo .c, ¿el Makefile recompila solo ese archivo o todos? ¿Por qué?
+
+**Resposta**:
+
+Tots els arxius, ja que la instrcció make vol que es compilin tots els arxius del programa
+
+**Solucions**:
+
+Primera part bé: mkdir -p $(BIN) crea el directori.
+
+Segona part malament: un Makefile ben escrit només recompila els .c modificats (no tots).
 
 ##### Ex 14
 ¿Para qué sirven los flags -Wall -Wextra -O2 en la compilación?
+
+**Resposta**:
+
+Per evitar warnings dins d'un codi,per exemple la comanda -Wall detecta qualsevol incoherencia i O2 vol dir optimització de nivell dos
+
+**Solució**:
+
+Dius que -Wall i -Wextra són per avisos i -O2 optimització. Correcte, però massa superficial:
+
+-Wall: activa molts warnings comuns.
+
+-Wextra: activa advertiments addicionals.
+
+-O2: optimitza velocitat i mida, però sense trencar debugging.
 
 
 
