@@ -177,18 +177,94 @@ On dins d'aquest MakeFile trobem que:
  * $@ = Nombre de l'objectiu (ex: bin/main)
  * $< = Primera dependencia (ex: sources/main.c)
 
-## Fitxers
+## Fitxers (obrir, tancar, descriptors)
 
 Posaré , directament una interprteació de la teoria.  
 ![alt text](image-2.png)
 ---
-
 
 **Pregunta**:En quin descriptor de fitxer aniría el fitxer file.txt?
 
 **Resposta**:Com que els descriptors de fitxers: 0, 1, 2 dins d'una adreça qualsevol de memòria estan preassigantas, especificament, el descriptor 0 está assignat a stdin, 1 a stdout i el 2 a stderr. Per tant, es crearia un descriptor de fitxer número 3 on hi hauria el fitxer file.txt i successivament pels següents fitxers.
 
 (Pendent de corregir)
+
+Codi donat a la teòria:
+```c
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h> //fileno() 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> //STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+
+
+int
+main() {
+    int fd1, fd2, fd3;
+    FILE *f;
+
+    printf("STDIN_FILENO: %d\n", STDIN_FILENO);
+    printf("stdin: %d\n", fileno(stdin));
+    printf("STDOUT_FILENO: %d\n", STDOUT_FILENO);
+    printf("stdout: %d\n", fileno(stdout));
+    printf("STDERR_FILENO: %d\n", STDERR_FILENO);
+    printf("stderr: %d\n", fileno(stderr));
+
+    printf("\nObrint /dev/zero...\n");
+    if ((fd1 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+    } else {
+        printf("fd1: %d\n", fd1);
+    }
+
+    printf("\nObrint /dev/zero una segona vegada...\n");
+    if ((fd2 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("fd2: %d\n", fd2);
+
+    printf("\nTancant fd1, perÃ² mantenint fd2 obert...\n");
+    (void)close(fd1);
+
+    printf("\nObrint /dev/zero una tercera vegada...\n");
+    if ((fd3 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("fd3: %d\n", fd3);
+
+    printf("\nAra tancant fd2 i fd3.\n");
+    (void)close(fd2);
+    (void)close(fd3);
+
+    printf("Ara obrint /dev/zero com a flux.\n");
+    if ((f = fopen("/dev/zero", "r")) == NULL) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("f: %d\n", fileno(f));
+    (void)fclose(f);
+
+    return EXIT_SUCCESS;
+}
+```
+Que entenc jo que fa aquest codi? (Sense veure el que hi ha a la capçalera)
+
+Primer de tot, hem de buscar, amb quin objectiu s'han implementat les llibreies, encara que el mateix codi, ens ajuda a dir quines són les funcions en específic:
+
+*#include <errno.h>: Aquesta llibreria utilitza la funció strerror, per a convertir el text convencional (com podria ser un hola món), en un missatge d'error.Encara que dubto de perquè no es declara la variable errno com a externa, per tant, podria fallar el codi.
+*#include <fcntl.h>: Es fa servir per utilitzar les funcions int  open(const char *, int, ...), o pels modes O_RDONLY Open for reading only. PERO NO EL CLOSE()
+*#include <stdio.h>: Per fer els printfs, també per poder posar, els descriptors de fitxer, stderr (Standard error output stream),stdin (Standard input stream).stdout
+(Standard output) , també per declarar FILE, a part se'ns dona el "chivatazo", de que s'uliltza int fileno(FILE *),FILE *fopen(const char *, const char *), int      fprintf(FILE *, const char *, ...)
+*#include <stdlib.h>:
+*#include <string.h>:
+*#include <unistd.h>://STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+
+TE HAS QUEDADO AQUÍ
+
+Un cop analitzades les funcions, podem dir que fa el codi de manera global:
 
 **Codi per obrir un fitxer**:
 
@@ -202,12 +278,26 @@ int open ( const char *path,
 int creat (const char *path, 
   mode_t mode);
   ```
- On dins dels codi trobem:
+
+ Que entenc jo per aquest codi?
+ Dins dels codi trobem:
  * Linies 1 - 3: Declaració de llibreries:
 
     * #include < sys/types.h> 
     * #include < sys/stat.h> 
-    * #include < fcntl.h> 
+    * #include < fcntl.h>.
+
+    Per saber el que utiltza cada llibreria fem, en la terminal de Linux, o per Google directament busquem la llibería:
+
+    *man 
+    *man 
+    *man fcntl
+
+    La llibrería fnctl és la que ens permet importar tant les funcions Creat com Open amb els seus repsectius paràmetres d'E/S. Després veiem que els paràmetres d'entrada són: Un punter de char, que bé podría ser argv[1]. Després, per definir el mode, necessitem un enter, on ha d'estar definit per <sys/types.h> (per exemple :0700 vol dir tots els permissos. Ultimament, tenim que <sys/stat.h> és la que defineix les constants del path, encara que es podria definir també el path amb un define tal que 
+    ```c
+    #define PATH "/home/jordi" 
+    ```
+    (dubto del que dic sobre <sys/stat.h>)
 
     Dins d'aquestes llibreries, es produeixen les següents crides a sistema (Creat per l'IA):
     * open()	sys_open	Abre archivo en el kernel
@@ -220,7 +310,7 @@ int creat (const char *path,
     * malloc()	sys_brk / sys_mmap	Asigna memoria del heap
     * free()	sys_brk / sys_munmap	Libera memoria del heap
 
-Encara falta acabar més teoria.
+
 
 
 
@@ -537,6 +627,12 @@ Dius que -Wall i -Wextra són per avisos i -O2 optimització. Correcte, però ma
 -Wextra: activa advertiments addicionals.
 
 -O2: optimitza velocitat i mida, però sense trencar debugging.
+
+## Reflexions personals
+
+- He d'avançar més en tema de c
+
+
 
 
 
