@@ -1,4 +1,4 @@
-# 🖥️ Apunts de Sistemes Operatius - Setmana 1
+# 🖥️ Apunts de Sistemes Operatius - TEMA 1
 
 ## 📋 Índex
 - [Setmana 1 - Introducció](#setmana-1---introducció)
@@ -8,7 +8,7 @@
 
 ---
 
-## 🎯 Setmana 1 - Introducció
+## 🎯 TEMA 1 - Introducció
 
 ### 🔍 Què és un Sistema Operatiu?
 El **Sistema Operatiu (SO)** és el programa fonamental que actua com a intermediari entre el maquinari i les aplicacions, gestionant tots els recursos del sistema.
@@ -177,7 +177,7 @@ On dins d'aquest MakeFile trobem que:
  * $@ = Nombre de l'objectiu (ex: bin/main)
  * $< = Primera dependencia (ex: sources/main.c)
 
-## Fitxers (obrir, tancar, descriptors)
+## Fitxers (obrir, tancar,llegir, descriptors)
 
 Posaré , directament una interprteació de la teoria.  
 ![alt text](image-2.png)
@@ -254,17 +254,40 @@ Que entenc jo que fa aquest codi? (Sense veure el que hi ha a la capçalera)
 
 Primer de tot, hem de buscar, amb quin objectiu s'han implementat les llibreies, encara que el mateix codi, ens ajuda a dir quines són les funcions en específic:
 
-*#include <errno.h>: Aquesta llibreria utilitza la funció strerror, per a convertir el text convencional (com podria ser un hola món), en un missatge d'error.Encara que dubto de perquè no es declara la variable errno com a externa, per tant, podria fallar el codi.
-*#include <fcntl.h>: Es fa servir per utilitzar les funcions int  open(const char *, int, ...), o pels modes O_RDONLY Open for reading only. PERO NO EL CLOSE()
-*#include <stdio.h>: Per fer els printfs, també per poder posar, els descriptors de fitxer, stderr (Standard error output stream),stdin (Standard input stream).stdout
-(Standard output) , també per declarar FILE, a part se'ns dona el "chivatazo", de que s'uliltza int fileno(FILE *),FILE *fopen(const char *, const char *), int      fprintf(FILE *, const char *, ...)
-*#include <stdlib.h>:
-*#include <string.h>:
-*#include <unistd.h>://STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+### Libreria: <fcntl.h>
+#### Funciones Clave
+- int open(const char *, int, ...), 
+- O_RDONLY Open for reading only
+- PERÒ NO EL CLOSE()
 
-TE HAS QUEDADO AQUÍ
+### Libreria: <stdio.h>
+#### Funciones Clave
+- printf
+- stderr (Standard error output stream),stdin (Standard input stream).stdout
+(Standard output) 
+- int fileno(FILE *)
+- FILE *fopen(const char *, const char *)
+- int, printf(FILE *, const char *, ...)
+
+### Libreria: <stdlib.h>
+#### Funciones Clave
+ - EXIT_FAILURE (Se expande a 8; lo utiliza la función atexit donde La función atexit() registra la función, a la que apunta func, que el sistema llama al final normal del programa. 
+ - També tenim ** EXIT_SUCCESS :Se expande a 0; lo utiliza la función atexit
+### Libreria: <string.h>
+#### Funciones Clave 
+ - He provat a compilar el programa sense string.h però se'm dona un warning de que no troba el prototip de la funció. Que significa això? Vol dir que en la funció strerror crida a la llibería string.h 
+### Libreria: <unistd.h>
+#### Funciones Clave 
+- STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO: Retornen els descriptors de fitxers associats a STDIN, STDOUT, STDERR
 
 Un cop analitzades les funcions, podem dir que fa el codi de manera global:
+
+* Primer s'inicialitzen els enters i un punter que apunta a FILE.
+* Després s'ens ensenya que els descriptors de fitxers stdin, stdout, stderror, tenen com a enters associats: 0, 1, 2 respectivament.
+* Amb la funció open(), que retorna un enter, s'ens ensenya que l'enter al descriptor (fd1) associat és 3, en la majoría de casos sempre que no es compleixi l'id.
+* Passem on el fd2 és obert, si fd1 és 3, llavors fd2 será 4. Altrament fd2 serà 3. Ja que no hi ha cap condició a satisfer.
+* Fd3 és obert, però fd1 ha sigut tancat i l'enter 3 ha quedat lliberat, per tant, s'associarà l'enter 3 a fd3.
+* Ultimament, els descriptors de fitxers, fd2, fd3, son "alliberats", per tant, quan obrim el fitxer amb la instrucció f = fopen("/dev/zero", "r")) NO estem associant cap enter, sino que unicament volem obrir dev/zero com a flux. Després, quan es fa fileno(f), es retorna l'enter 3.
 
 **Codi per obrir un fitxer**:
 
@@ -310,8 +333,31 @@ int creat (const char *path,
     * malloc()	sys_brk / sys_mmap	Asigna memoria del heap
     * free()	sys_brk / sys_munmap	Libera memoria del heap
 
+**Codi per llegir un fitxer**:
+```c
+#include <unistd.h> 
+ssize_t read(int fd, void *buf, size_t);
 
+ssize_t write(int fd, void *buf, size_t);
+ ```
 
+** Intepretació de codi **:
+```c
+int main(int argc, char* argv[]) {
+  char string[11]; int b_read;
+  int file = open ("my_file", O_RDONLY); 
+  if(file == -1) { 
+    perror("Error while opening file");
+    exit(1);
+  }
+  b_read = read(file, string, 10);
+  close(file);
+  string[10] = 0;
+  printf("%d B have been read. The obtained string is: %s\n", 
+    b_read, string);
+  return 0;
+}
+```
 
 
 
