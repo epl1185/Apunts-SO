@@ -289,6 +289,8 @@ Un cop analitzades les funcions, podem dir que fa el codi de manera global:
 * Fd3 és obert, però fd1 ha sigut tancat i l'enter 3 ha quedat lliberat, per tant, s'associarà l'enter 3 a fd3.
 * Ultimament, els descriptors de fitxers, fd2, fd3, son "alliberats", per tant, quan obrim el fitxer amb la instrucció f = fopen("/dev/zero", "r")) NO estem associant cap enter, sino que unicament volem obrir dev/zero com a flux. Després, quan es fa fileno(f), es retorna l'enter 3.
 
+(Resposta basada en el que diu @Deepseek)
+
 **Codi per obrir un fitxer**:
 
 ```c
@@ -341,7 +343,7 @@ ssize_t read(int fd, void *buf, size_t);
 ssize_t write(int fd, void *buf, size_t);
  ```
 
-** Intepretació de codi **:
+ ### Intepretació de codi:
 ```c
 int main(int argc, char* argv[]) {
   char string[11]; int b_read;
@@ -358,12 +360,92 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 ```
+Que entenc jo d'aquest codi?
+
+* Primerament, declarem tant un array de caràcters de MIDA 11, i un index per fer la lectura del fitxer.
+Seguidament, es llegeix el fitxer, si es retorna -1 vol dir que hi ha hagut un error obrint el fitxer. Un cop s'ha obrit, l'hem de llegir, indicant la mida de bytes (10 en aquest cas), pasant-li el buffer, que en aquest cas és string[11]. Podem dir que s'imprimira els strings: string[0], string[1], string[2],... , string[9] amb el nombre de bytes llegits, ja que string[10] = 0 es NULL. Per tant un exemple d'output seria: 
+Fitxer:{'H','e','l','l','o','W','o','r','l','d'}
+Output: HelloWorld
+
+Com a equivalent, podem dir que aquest codi, fa més del mateix però utilitzant seek: 
+```c
+#include <fcntl.h>  // Open modes
+#include <unistd.h> // Many POSIX functions
+#include <stdlib.h> // File functions
+#include <stdio.h>  // Standard I/O
+
+int main() {
+  char string[11];
+  int b_read;
+
+  int file = open ("files/my_file", O_RDONLY); 
+  if(file == -1) { 
+    perror("Error while opening file");
+    exit(1);
+  }
+
+  lseek(file, 46, SEEK_SET);
+  b_read = read(file, string, 10); // Read 10 bytes
+  close(file);
+
+  string[10] = 0;
+  printf("%d B have been read. The obtained string is: %s\n", 
+  b_read, string);
+
+  return 0;
+}
+```
+* Sent SEEK_SET: el punter es col·loca offset bytes.(10 en aquest cas)
+
+**Codi per escruire en un fitxer**:
+```c
+int main(int argc, char* argv[]) {
+
+  const char* string = "\nWinter is coming\n\n";
+
+  int file = open("new_file", O_CREAT|O_WRONLY, 0644);
+
+  if(file == -1) { 
+    perror("Error when opening file");
+    exit(1);
+  }
+
+  write(file, string, strlen(string));
+  close(file);
+
+  exit(0);
+}
+```
+* Es declara un const char* string amb el contingut que volem posar dins del fitxer. Després, tenim que sobre el fitxer amb uns certs permissos, en específic, només escriure i crear el fitxer si no existeix amb un cert mode(ara no m'en enrecordo).
+En cas d'error es retorna -1 i en cas de succès s'esciriu l'string dins del fitxer indicant la seva mida amb strlen.
+
+```c
+char buf1[] = "abcdefghij";
+char buf2[] = "ABCDEFGHIJ";
+
+int main() {
+  int fd;
+  if((fd = creat("new_file2", 0644)) < 0) {
+    perror("new_file2"); exit(-1);
+  }
+
+  if(write(fd, buf1, 10) != 10)       perror("buf1");    // offset == 10
+  if(lseek(fd, 4, SEEK_SET) == -1)    perror("lseek");   // offset == 4
+  if(write(fd, buf2, 10) != 10)       perror("buf2");    // offset == 14
+
+  return 0;
+}
+```
+
+
+
+
 
 
 
 ## Exemples pràctics
 
-M’he creat aquests exercicis amb IA. La idea és **deduir què fa cada programa pas a pas** i relacionar-ho amb la teoria vista a classe. (Com estic repassant el tema 1 en la setmana 3, m'he doant la llibertat de posar conceptes encara no vistos)
+M’he creat aquests exercicis amb IA. La idea és **deduir què fa cada programa pas a pas** i relacionar-ho amb la teoria vista a classe. (Com estic repassant el tema 1 en la setmana 3, m'he donat la llibertat de posar conceptes encara no vistos)
 
 #### Exercici 1
 ```c
