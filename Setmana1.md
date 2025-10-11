@@ -436,10 +436,66 @@ int main() {
   return 0;
 }
 ```
+* En aquest cas, inicialitzem dos buffers amb lletres minuscúles i majúscules.Dins del main, s'inicialtza un fitxer amb fd, es crea un fixter. En cas d'error es retorna -1.Després, volem escriure abcdefghij, que justament són 10 bytes, per tant, s'escriuran sense cap problema. Amb seek_set és mouen un total de 14 bytes i després s'escriuen els 10 caràcters amb majúscles restants.
 
+### Punters
 
+&: Retorna l’adreça de l’apuntador. Per exemple &x ens dóna l’adreça de la variable x.
 
+*: Retorna el valor de la variable situada a l’adreça especificada pel seu operand (dereferencing).
 
+```c
+int 
+main (int argc, 
+    char * argv[]){
+    int s=10;
+    float f=10.5;
+    char a='a';
+
+    int *pt1 = &s;
+    float *pt2 = &f;
+    char *pt3= &a;
+    printf(%d,%f,&c, *pt1,*pt2,*pt3);
+};
+```
+
+En aquest codi, podem veure que si fessim printf tal que:
+
+ veuirem respectivament, 10, 10,5,a, ja que amb la instrucció int *pt1 = &s, dona el que hi ha dins de l'adreça de memòria.
+
+ ```c
+ int n = 2;
+int *ptr1 = NULL;
+ptr1 = &n;
+(*ptr1)++        //Modifiquem el valor de la variable a la que apunta
+ptr1++           //Modifiquem l'adreça de memòria on apunta
+```
+Tenim que l'output serà l'adreça de memòria de n incrementada una posició i dins d'aquesta adreça de memòria, tenim que el contigut n'és 3.
+
+```c
+#include <stdio.h>
+
+void sumar_per_referencia(int *a, int *b) {
+    *a = *a + *b;
+}
+
+int main() {
+    int x = 5; int y = 3;
+    printf("Abans de la crida per referència: x = %d, y = %d\n", x, y);
+    sumar_per_referencia(&x, &y);
+    printf("Després de la crida per referència: x = %d, y = %d\n", x, y);
+    return 0;
+}
+```
+
+En aquest programa podem veure els pàs de paràmetre per refèrencia, es pasa a la funció l'adreça de memòria tant d'x com a y, però en la funció es tracten amb els punters que apunten a l'adreça de memòria, per tant, simplement s'incrementa el contingut que hi ha dins de l'adreça de memòria de x a + b vegades.
+
+### Stack Vs LIFO
+
+Stack: És una estructura LIFO (Last-In,First-Out). La pila és una regió especial de memòria i la gestiona automàticament la CPU, de manera que no cal assignar ni desassignar memòria.
+
+![Esquema del funcionament d'una pila LIFO, vist a EDC II](image-3.png) 
+*Figura 1. Representació del funcionament d’una pila LIFO*
 
 
 
