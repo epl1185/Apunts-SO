@@ -495,10 +495,173 @@ En aquest programa podem veure els pàs de paràmetre per refèrencia, es pasa a
 Stack: És una estructura LIFO (Last-In,First-Out). La pila és una regió especial de memòria i la gestiona automàticament la CPU, de manera que no cal assignar ni desassignar memòria.
 
 ![Esquema del funcionament d'una pila LIFO, vist a EDC II](image-3.png) 
+
 *Figura 1. Representació del funcionament d’una pila LIFO*
 
+HEAP: La heap és una àrea de memòria on s’assigna memòria de manera dinàmica durant el temps d’execució.
+
+He vist que la Heap pot ser representada en forma de graf, no entenc molt bé el perqué, volia posar una imatge però no puc posar quelcom que no entenc.
+
+La heap permet emmagatzemar items a la memòria en quaelvol ordre.Podem accedir a ell en qualsevol moment.És més localitzar la dada específica.
+
+* Interpretació de codi 
+```c
+int main() {     
+    int y;   
+    char *str; 
+    y = 4;
+    printf("stack memory: %d\n", y);
+    str = malloc(100*sizeof(char)); 
+    str[0] = 'm';
+    printf("heap memory:%c\n", str[0]); 
+    free(str);         
+    return 0;
+}
+```
+En aquest codi, se'ns vol ensenyar com funciona tant l'stack com el heap.
+Per una part, podem veure com en l'stack s'emmagatzemen les variables locals i les funcions. En aquest cas són main i y. Després, podem veure com amb malloc reservem 100 * bytes d'un char.Dins del punter de caràcters és posa m a la posició str[0], després es mostra la m emmgagatzemada a la heap i s'allibera la memòria.
+
+![alt text](image-4.png)
+
+```c
+void ordenar(int n, int* ptr)
+{
+    int i, j, t;
+    for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+            if (*(ptr + j) < *(ptr + i)) {
+                t = *(ptr + i);
+                *(ptr + i) = *(ptr + j);
+                *(ptr + j) = t;
+            }
+        }
+    }
+}
+
+int 
+main() {
+    char msg[250];
+    int *a, n, i;
+
+    sprintf(msg, "Introdueix el nombre d'elements de l'array: \n");
+    write(STDOUT_FILENO, msg, strlen(msg));
+    scanf("%d", &n);
+
+    a = (int*)malloc(n * sizeof(int));
+    if (a == NULL) {
+        perror("Error en reservar memÃ²ria");
+        exit(EXIT_FAILURE);
+    }
+
+    for (i = 0; i < n; i++) {
+        sprintf(msg, "Introdueix un element de l'array: \n");
+        write(STDOUT_FILENO, msg, strlen(msg));
+        scanf("%d", a + i);
+    }
+
+    ordenar(n, a);
 
 
+    for (i = 0; i < n; i++) {
+        sprintf(msg, "a[%d] = %d\n", i, *(a + i));
+        write(STDOUT_FILENO, msg, strlen(msg));
+    }
+
+    free(a);
+
+    exit(EXIT_SUCCESS);
+}
+```
+
+* Declaracions
+
+    *char msg[250];
+    *int *a, n, i;
+* Esquelet del programa
+    * Amb la funció sprintf podem printejar una sortida en un buffer de memòria (string)
+    * Després s'escriu al fitxer, passant el descriptor de fitxer, essent msg el mateix buffer i strlen determina la mida d'strings de chars.
+    * En una adreça de memòria, posem el número que ha posat l'usuari.
+    * Es reserva a la heap , la MIDA: malloc(n * sizeof(int)). En cas d'error es retorna NULL.
+    * En cas de succés, esrivim els elements que l'usuari vulgui al fitxer, dins la mida que ha introduit.
+    * Després dins del mateix fitxer, s'ordena mitjançant bubble sort de més petit a més gran, es a dir de A a la Z.
+    * Un cop hem ordenat l'array de chars, printejem els elements de manera ordenada. I els esrivim dins de msg.
+    * Un cop acabat alliberem la memòria dinàmica assignada.
+
+Sigui el següent codi, utlitzant la funció anterior:
+```c
+capta_dades(int n, int* nums) {
+  while (scanf("%d", &num) != EOF) {
+    if (n >= max_elements) {
+      max_elements *= 2;
+      int* temp = (int*)realloc(nums, max_elements * sizeof(int));
+      if (temp == NULL) {
+        printf("Error en l'assignació de memòria.\n");
+        free(nums);
+        return 1;
+      }
+      nums = temp;
+    }
+  nums[n] = num;
+  n++;
+  }
+}
+int main() {
+    int* nums = NULL;  
+    int n = 0, max_elements = 10, num;
+
+    nums = (int*)malloc(max_elements * sizeof(int));
+    if (nums == NULL) {
+        printf("Error en l'assignació de memòria.\n");
+        return 1;
+    }
+
+    capta_dades(n, nums);
+    ordenar(n, nums);
+    free(nums);
+    return 0;
+}
+```
+* Declaracions
+    * int* nums = NULL;  
+    * int n = 0, max_elements = 10, num;
+* Esquelet del programa
+    * Es reserva memòria a la Heap amb max_elements * sizeof(int).
+    * En el captadades es passen tant l'n que és 0 com la Memòria reservada a la Heap.
+    * Recorrem tots els elementos mentre hi hagi memòria, altrament es retorna EOF.
+    * Després, tenim que si el nombre n > max_elements, es dupliquen el màxim d'elements *2, així ens assugurem de que n sigui < max_elements la següent vegada, també es reassgina la memòria. Per després poder reassignar a nums.
+    * Finalement afegim l'element a nums i incrementem n.
+    * Ordenem i allibrem la memòria perquè és bona pràctica.
+    
+### Structs i TypeDef
+
+Typedef: Crear sinònims per a noms de tipus de dades definits prèviament.
+Exemples:
+```c
+typedef int L;
+int a;
+L a;
+```
+Struct: Per a crear classes (com en java)
+```c
+Classe user:
+typedef struct 
+{
+    int pid;
+    char * name;
+    } User; 
+
+Instància de user:
+    User user;
+    user.name="
+    Jordi Mateo";
+    user.pid=5000;
+    
+Una altra instància de user:
+    User * user1;
+    user1->name="Jack sparrow";
+    *(user1).pid=5001;
+    User *user2 = &user;
+```
 ## Exemples pràctics
 
 M’he creat aquests exercicis amb IA. La idea és **deduir què fa cada programa pas a pas** i relacionar-ho amb la teoria vista a classe. (Com estic repassant el tema 1 en la setmana 3, m'he donat la llibertat de posar conceptes encara no vistos)
@@ -812,6 +975,26 @@ Dius que -Wall i -Wextra són per avisos i -O2 optimització. Correcte, però ma
 
 -O2: optimitza velocitat i mida, però sense trencar debugging.
 
+##### Ex15
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int n;
+    
+    printf("Ingresa el tamaño del array: ");
+    scanf("%d", &n);
+    
+    // Completa el código:
+    // 1. Asigna memoria dinámica para un array de n enteros
+    // 2. Verifica si la asignación fue exitosa
+    // 3. Llena el array con valores (pueden ser secuenciales)
+    // 4. Imprime el array
+    // 5. Libera la memoria asignada
+    
+    return 0;
+}
+
 ## Reflexions personals
 
 - He d'avançar més en tema de c
@@ -819,6 +1002,6 @@ Dius que -Wall i -Wextra són per avisos i -O2 optimització. Correcte, però ma
 
 
 
-
+![alt text](image-5.png)
 
 
