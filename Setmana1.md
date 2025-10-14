@@ -995,9 +995,248 @@ int main() {
     return 0;
 }
 
+Resposta:
+#include <stdlib.h>
+#include <errno.h>
+
+int main() {
+    int n;
+    
+    printf("Ingresa el tamaño del array: ");
+    scanf("%d", &n);
+    
+    int *a;
+
+    a = (int *) malloc (n * sizeof(int));
+    if(a == NULL)
+    {
+        perror("Error en reservar memòria");
+        exit(EXIT_FAILURE);
+    }
+
+    for(int i = 0; i < n ; i++ && a++)
+    {
+        i++;
+        a = &i;
+        i--;
+
+    }
+
+    for(int i = 0; i < n ; i ++)
+    {
+        printf("L'array %d té el valor %d \n", i , *a);
+    }
+    free(a);
+    return 0;
+}
+
+Solució:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
+int main() {
+    int n;
+    
+    printf("Ingresa el tamaño del array: ");
+    scanf("%d", &n);
+    
+    int *a = (int *) malloc (n * sizeof(int));
+    int *ptr = a;
+    if(a == NULL)
+    {
+        perror("Error en reservar memòria");
+        exit(EXIT_FAILURE);
+    }
+
+    for(int i = 0; i < n ; i++ && a++)
+    {
+       *ptr = i * 3;
+       ptr++;
+    }
+
+    ptr = a;
+
+    for(int i = 0; i < n ; i ++)
+    {
+        printf("L'array [%d] té el valor %d \n", i , *ptr);
+        ptr++;
+    }
+    free(a);
+    return 0;
+```
+
+##### Ex16:
+```c
+#include <stdio.h>
+int main() {
+    int x = 10;
+    int *p = &x;
+    int **q = &p;
+
+    **q += 5;
+    *p = *p * 2;
+    printf("%d\n", x);
+}
+```
+Quin serà el resultat de la execució? Resposta: 30. Totes les variables, x, p, q apunten a la mateixa variable int.
+
+Solució: 30
+
+##### Ex17 
+
+Completa el codi restant:
+```c
+#include <stdio.h>
+int main() {
+    char msg[] = "C language";
+    char *p = msg;
+
+    // ???? (Mou el punter al final i imprimeix cap enrere)
+
+    return 0;
+}
+```
+Resposta:
+```c
+#include <stdio.h>
+int main() {
+    char msg[] = "C language";
+    char *p = msg;
+    int len;
+
+    for(len = 0; *p != '\0'; len++)
+    {
+        p++;
+    }
+
+    for(;len >= 0; len--)
+    {
+        printf("%c",*p);
+        p--;
+    }
+
+    return 0;
+}
+```
+Solució:
+```c
+#include <stdio.h>
+int main() {
+    char msg[] = "C language";
+    char *p = msg;
+    int len;
+
+    for(len = 0; *p != '\0'; len++)
+    {
+        p++;
+    }
+
+    p--;
+
+    for(;len > 0; len--)
+    {
+        printf("%c",*p);
+        p--;
+    }
+
+    return 0;
+}
+```
+##### Ex18
+```c
+#include <stdio.h>
+int main() {
+    int arr[] = {10, 20, 30, 40};
+    int *p = arr;
+    *(p + 2) = *p + 5;
+    p++;
+    printf("%d %d\n", *p, *(p+1));
+}
+```
+Que impremeix?
+
+Resposta: 20 0
+
+Solució: 20 15
+
+##### Ex19
+```c
+#include <stdio.h>
+int main() {
+    int x = 5;
+    int y = 10;
+    int *p = &x;
+    int *q = &y;
+    p = q;
+    *p = 20;
+    printf("%d %d\n", x, y);
+}
+```
+Que imprimeix?
+
+Resposta: 20 20
+
+Solució: 5 20 
+
+##### Ex20
+```c
+#include <stdio.h>
+int main() {
+    int n = 5;
+    int *p = &n;
+    int **r = &p;
+
+    *p = *p + 3;
+    **r = **r - 2;
+
+    printf("%d\n", n);
+}
+```
+Que imprimeix?
+
+Resposta: 6
+
+Solució: 6
+
+##### Ex21
+
+```c
+#include <stdio.h>
+int main() {
+    char *s = "Hola";
+    char t[] = "Hola";
+    if (s == t)
+        printf("Iguals\n");
+    else
+        printf("Diferents\n");
+}
+```
+Resposta: Diferents, ja que el punter apunta a l'adreça de memòria de h i t és l'array en si.
+
+Solució:Diferents, 
+char *s = "Hola";
+
+👉 s és un punter a una constant de cadena que es troba en una zona de memòria de només lectura (normalment del segment text del programa).
+
+char t[] = "Hola";
+
+👉 t és un array local que conté una còpia dels caràcters "Hola" dins de la memòria automàtica (stack).
+
+
+
+
+
+
+
+
+
 ## Reflexions personals
 
-- He d'avançar més en tema de c
+- Tardo massa en fer els apunts
+- Hauria d'expressarme millor
+- He millorat bastant en el tema punters i memòria dinàmica.
 
 
 
