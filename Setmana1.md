@@ -1224,6 +1224,205 @@ char t[] = "Hola";
 
 👉 t és un array local que conté una còpia dels caràcters "Hola" dins de la memòria automàtica (stack).
 
+##### Ex22
+```c
+#include <stdio.h>
+int main() {
+    int a[3] = {1,2,3};
+    int *p = a;
+    printf("%d\n", *p++ + *p);
+}
+```
+Resposta: 3.Ja que, els punters se sumen, en aquest cas apunten a l'array a[1] i a[0], si els sumen tenim a[2].
+
+Solució: p apunta inicialment a a[0].
+L’expressió *p++ retorna el valor de a[0] (1) i després incrementa el punter perquè apunti a a[1].
+Després, *p és a[1] (2).
+La suma és 1 + 2 = 3.
+
+##### Ex23
+```c
+#include <stdio.h>
+
+int main() {
+    int a[4] = {1, 2, 3, 4};
+    int *p = a;
+
+    printf("%d\n", *p++ + *p++);
+    return 0;
+}
+```
+Resposta: 4
+
+Solució: 3.
+
+Primer *p++:
+
+Usa el valor apuntat actualment (a[0] = 1)
+
+Després incrementa p → ara p apunta a a[1]
+
+Segon *p++:
+
+    Usa el valor actual (a[1] = 2)
+
+    Després incrementa p → ara p apunta a a[2]
+
+    Suma:
+
+    1 + 2 = 3 1 + 2 = 3
+
+Compte perquè també es podria fer :
+```c 
+printf("%d\n", *p + *p++); 
+```
+
+Aquí l’ordre d’avaluació de *p i *p++ és indefinit segons l’estàndard de C (comportament indefinit).
+Això vol dir que pot imprimir coses diferents segons el compilador (una trampa de veritat 🧠🔥).
+
+##### Ex24
+```c
+#include <stdio.h>
+
+struct alumne {
+    int id;
+    char *nom;
+};
+
+int main() {
+    struct alumne classe[] = {
+        {1, "Marc"}, {2, "Júlia"}, {3, "Pau"}
+    };
+
+    // ???? (Usa un punter a struct per recórrer l’array i imprimir)
+
+    return 0;
+}
+```
+Completa el codi.
+Resposta:
+```c
+#include <stdio.h>
+
+struct alumne {
+    int id;
+    char *nom;
+};
+
+int main() {
+    struct alumne classe[] = {
+        {1, "Marc"}, {2, "Júlia"}, {3, "Pau"}
+    };
+    int n = sizeof(classe) / sizeof(classe[0]);
+
+    struct alumne *p = classe;
+
+    for(; (int) p < n; p++)
+    {
+        printf("%d, |%s|",classe[(int) p]);
+    }
+}
+```
+Solució:
+```c
+#include <stdio.h>
+
+struct alumne {
+    int id;
+    char *nom;
+};
+
+int main() {
+    struct alumne classe[] = {
+        {1, "Marc"}, {2, "Júlia"}, {3, "Pau"}
+    };
+
+    int n = sizeof(classe) / sizeof(classe[0]);
+    struct alumne *p = classe;
+
+    for (; p < classe + n; p++) {
+        printf("%d |%s|\n", p->id, p->nom);
+    }
+
+    return 0;
+}
+```
+
+Explicació:
+
+Aquí classe + n apunta justo al elemento después del último del array.
+
+La sintaxi para imprimir es simplemente p -> id.
+
+##### Ex25
+Completa el codi perquè output tingui HELLO
+```c
+#include <stdio.h>
+#include <ctype.h>
+
+int main() {
+    char msg[] = "hello";
+    char output[6];
+    char *src = msg;
+    char *dst = output;
+
+    // ????
+    printf("%s\n", output);
+}
+```
+
+Resposta:
+```c
+#include <stdio.h>
+#include <ctype.h>
+
+int main() {
+    char msg[] = "hello";
+    char output[6];
+    char *src = msg;
+    char *dst = output;
+
+    for(int i = 0; i < *dst ; i++)
+    {
+	dst = src;
+	src++;
+	dst++;
+    }
+
+
+    printf("%s\n", output);
+}
+```
+Solució:
+```c
+#include <stdio.h>
+#include <ctype.h>
+
+int main() {
+    char msg[] = "hello";
+    char output[6];
+    char *src = msg;
+    char *dst = output;
+
+    while (*src != '\0') {
+        *dst = *src;  // Copia el carácter
+        src++;
+        dst++;
+    }
+    *dst = '\0'; // Finaliza la cadena
+
+    printf("%s\n", output);
+}
+```
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1237,6 +1436,7 @@ char t[] = "Hola";
 - Tardo massa en fer els apunts
 - Hauria d'expressarme millor
 - He millorat bastant en el tema punters i memòria dinàmica.
+- Encara així, se'm dona bastant malament combarlos amb struct i tydefs
 
 
 
