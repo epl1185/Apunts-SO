@@ -123,7 +123,7 @@ Sí. Perquè en el moment que es tracti una interrupció durant la rutina d'aque
 
 ![alt text](image-7.png)
 
-En aquesta imatge podem veure com 
+En aquesta imatge podem veure com en la estructura micr
 
 
 
