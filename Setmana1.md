@@ -178,6 +178,7 @@ On dins d'aquest MakeFile trobem que:
  * $< = Primera dependencia (ex: sources/main.c)
 
 ## Fitxers (obrir, tancar,llegir, descriptors)
+## Fitxers (obrir, tancar,llegir, descriptors)
 
 Posaré , directament una interprteació de la teoria.  
 ![alt text](image-2.png)
@@ -188,6 +189,108 @@ Posaré , directament una interprteació de la teoria.
 **Resposta**:Com que els descriptors de fitxers: 0, 1, 2 dins d'una adreça qualsevol de memòria estan preassigantas, especificament, el descriptor 0 está assignat a stdin, 1 a stdout i el 2 a stderr. Per tant, es crearia un descriptor de fitxer número 3 on hi hauria el fitxer file.txt i successivament pels següents fitxers.
 
 (Pendent de corregir)
+
+Codi donat a la teòria:
+```c
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h> //fileno() 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> //STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+
+
+int
+main() {
+    int fd1, fd2, fd3;
+    FILE *f;
+
+    printf("STDIN_FILENO: %d\n", STDIN_FILENO);
+    printf("stdin: %d\n", fileno(stdin));
+    printf("STDOUT_FILENO: %d\n", STDOUT_FILENO);
+    printf("stdout: %d\n", fileno(stdout));
+    printf("STDERR_FILENO: %d\n", STDERR_FILENO);
+    printf("stderr: %d\n", fileno(stderr));
+
+    printf("\nObrint /dev/zero...\n");
+    if ((fd1 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+    } else {
+        printf("fd1: %d\n", fd1);
+    }
+
+    printf("\nObrint /dev/zero una segona vegada...\n");
+    if ((fd2 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("fd2: %d\n", fd2);
+
+    printf("\nTancant fd1, perÃ² mantenint fd2 obert...\n");
+    (void)close(fd1);
+
+    printf("\nObrint /dev/zero una tercera vegada...\n");
+    if ((fd3 = open("/dev/zero", O_RDONLY)) < 0) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("fd3: %d\n", fd3);
+
+    printf("\nAra tancant fd2 i fd3.\n");
+    (void)close(fd2);
+    (void)close(fd3);
+
+    printf("Ara obrint /dev/zero com a flux.\n");
+    if ((f = fopen("/dev/zero", "r")) == NULL) {
+        fprintf(stderr, "No es pot obrir /dev/zero: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    printf("f: %d\n", fileno(f));
+    (void)fclose(f);
+
+    return EXIT_SUCCESS;
+}
+```
+Que entenc jo que fa aquest codi? (Sense veure el que hi ha a la capçalera)
+
+Primer de tot, hem de buscar, amb quin objectiu s'han implementat les llibreies, encara que el mateix codi, ens ajuda a dir quines són les funcions en específic:
+
+### Libreria: <fcntl.h>
+#### Funciones Clave
+- int open(const char *, int, ...), 
+- O_RDONLY Open for reading only
+- PERÒ NO EL CLOSE()
+
+### Libreria: <stdio.h>
+#### Funciones Clave
+- printf
+- stderr (Standard error output stream),stdin (Standard input stream).stdout
+(Standard output) 
+- int fileno(FILE *)
+- FILE *fopen(const char *, const char *)
+- int, printf(FILE *, const char *, ...)
+
+### Libreria: <stdlib.h>
+#### Funciones Clave
+ - EXIT_FAILURE (Se expande a 8; lo utiliza la función atexit donde La función atexit() registra la función, a la que apunta func, que el sistema llama al final normal del programa. 
+ - També tenim ** EXIT_SUCCESS :Se expande a 0; lo utiliza la función atexit
+### Libreria: <string.h>
+#### Funciones Clave 
+ - He provat a compilar el programa sense string.h però se'm dona un warning de que no troba el prototip de la funció. Que significa això? Vol dir que en la funció strerror crida a la llibería string.h 
+### Libreria: <unistd.h>
+#### Funciones Clave 
+- STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO: Retornen els descriptors de fitxers associats a STDIN, STDOUT, STDERR
+
+Un cop analitzades les funcions, podem dir que fa el codi de manera global:
+
+* Primer s'inicialitzen els enters i un punter que apunta a FILE.
+* Després s'ens ensenya que els descriptors de fitxers stdin, stdout, stderror, tenen com a enters associats: 0, 1, 2 respectivament.
+* Amb la funció open(), que retorna un enter, s'ens ensenya que l'enter al descriptor (fd1) associat és 3, en la majoría de casos sempre que no es compleixi l'id.
+* Passem on el fd2 és obert, si fd1 és 3, llavors fd2 será 4. Altrament fd2 serà 3. Ja que no hi ha cap condició a satisfer.
+* Fd3 és obert, però fd1 ha sigut tancat i l'enter 3 ha quedat lliberat, per tant, s'associarà l'enter 3 a fd3.
+* Ultimament, els descriptors de fitxers, fd2, fd3, son "alliberats", per tant, quan obrim el fitxer amb la instrucció f = fopen("/dev/zero", "r")) NO estem associant cap enter, sino que unicament volem obrir dev/zero com a flux. Després, quan es fa fileno(f), es retorna l'enter 3.
+
+(Resposta basada en el que diu @Deepseek)
 
 Codi donat a la teòria:
 ```c
@@ -306,10 +409,26 @@ int creat (const char *path,
 
  Que entenc jo per aquest codi?
  Dins dels codi trobem:
+
+ Que entenc jo per aquest codi?
+ Dins dels codi trobem:
  * Linies 1 - 3: Declaració de llibreries:
 
     * #include < sys/types.h> 
     * #include < sys/stat.h> 
+    * #include < fcntl.h>.
+
+    Per saber el que utiltza cada llibreria fem, en la terminal de Linux, o per Google directament busquem la llibería:
+
+    *man 
+    *man 
+    *man fcntl
+
+    La llibrería fnctl és la que ens permet importar tant les funcions Creat com Open amb els seus repsectius paràmetres d'E/S. Després veiem que els paràmetres d'entrada són: Un punter de char, que bé podría ser argv[1]. Després, per definir el mode, necessitem un enter, on ha d'estar definit per <sys/types.h> (per exemple :0700 vol dir tots els permissos. Ultimament, tenim que <sys/stat.h> és la que defineix les constants del path, encara que es podria definir també el path amb un define tal que 
+    ```c
+    #define PATH "/home/jordi" 
+    ```
+    (dubto del que dic sobre <sys/stat.h>)
     * #include < fcntl.h>.
 
     Per saber el que utiltza cada llibreria fem, en la terminal de Linux, o per Google directament busquem la llibería:
@@ -662,8 +781,336 @@ Una altra instància de user:
     *(user1).pid=5001;
     User *user2 = &user;
 ```
+**Codi per llegir un fitxer**:
+```c
+#include <unistd.h> 
+ssize_t read(int fd, void *buf, size_t);
+
+ssize_t write(int fd, void *buf, size_t);
+ ```
+
+ ### Intepretació de codi:
+```c
+int main(int argc, char* argv[]) {
+  char string[11]; int b_read;
+  int file = open ("my_file", O_RDONLY); 
+  if(file == -1) { 
+    perror("Error while opening file");
+    exit(1);
+  }
+  b_read = read(file, string, 10);
+  close(file);
+  string[10] = 0;
+  printf("%d B have been read. The obtained string is: %s\n", 
+    b_read, string);
+  return 0;
+}
+```
+Que entenc jo d'aquest codi?
+
+* Primerament, declarem tant un array de caràcters de MIDA 11, i un index per fer la lectura del fitxer.
+Seguidament, es llegeix el fitxer, si es retorna -1 vol dir que hi ha hagut un error obrint el fitxer. Un cop s'ha obrit, l'hem de llegir, indicant la mida de bytes (10 en aquest cas), pasant-li el buffer, que en aquest cas és string[11]. Podem dir que s'imprimira els strings: string[0], string[1], string[2],... , string[9] amb el nombre de bytes llegits, ja que string[10] = 0 es NULL. Per tant un exemple d'output seria: 
+Fitxer:{'H','e','l','l','o','W','o','r','l','d'}
+Output: HelloWorld
+
+Com a equivalent, podem dir que aquest codi, fa més del mateix però utilitzant seek: 
+```c
+#include <fcntl.h>  // Open modes
+#include <unistd.h> // Many POSIX functions
+#include <stdlib.h> // File functions
+#include <stdio.h>  // Standard I/O
+
+int main() {
+  char string[11];
+  int b_read;
+
+  int file = open ("files/my_file", O_RDONLY); 
+  if(file == -1) { 
+    perror("Error while opening file");
+    exit(1);
+  }
+
+  lseek(file, 46, SEEK_SET);
+  b_read = read(file, string, 10); // Read 10 bytes
+  close(file);
+
+  string[10] = 0;
+  printf("%d B have been read. The obtained string is: %s\n", 
+  b_read, string);
+
+  return 0;
+}
+```
+* Sent SEEK_SET: el punter es col·loca offset bytes.(10 en aquest cas)
+
+**Codi per escruire en un fitxer**:
+```c
+int main(int argc, char* argv[]) {
+
+  const char* string = "\nWinter is coming\n\n";
+
+  int file = open("new_file", O_CREAT|O_WRONLY, 0644);
+
+  if(file == -1) { 
+    perror("Error when opening file");
+    exit(1);
+  }
+
+  write(file, string, strlen(string));
+  close(file);
+
+  exit(0);
+}
+```
+* Es declara un const char* string amb el contingut que volem posar dins del fitxer. Després, tenim que sobre el fitxer amb uns certs permissos, en específic, només escriure i crear el fitxer si no existeix amb un cert mode(ara no m'en enrecordo).
+En cas d'error es retorna -1 i en cas de succès s'esciriu l'string dins del fitxer indicant la seva mida amb strlen.
+
+```c
+char buf1[] = "abcdefghij";
+char buf2[] = "ABCDEFGHIJ";
+
+int main() {
+  int fd;
+  if((fd = creat("new_file2", 0644)) < 0) {
+    perror("new_file2"); exit(-1);
+  }
+
+  if(write(fd, buf1, 10) != 10)       perror("buf1");    // offset == 10
+  if(lseek(fd, 4, SEEK_SET) == -1)    perror("lseek");   // offset == 4
+  if(write(fd, buf2, 10) != 10)       perror("buf2");    // offset == 14
+
+  return 0;
+}
+```
+* En aquest cas, inicialitzem dos buffers amb lletres minuscúles i majúscules.Dins del main, s'inicialtza un fitxer amb fd, es crea un fixter. En cas d'error es retorna -1.Després, volem escriure abcdefghij, que justament són 10 bytes, per tant, s'escriuran sense cap problema. Amb seek_set és mouen un total de 14 bytes i després s'escriuen els 10 caràcters amb majúscles restants.
+
+### Punters
+
+&: Retorna l’adreça de l’apuntador. Per exemple &x ens dóna l’adreça de la variable x.
+
+*: Retorna el valor de la variable situada a l’adreça especificada pel seu operand (dereferencing).
+
+```c
+int 
+main (int argc, 
+    char * argv[]){
+    int s=10;
+    float f=10.5;
+    char a='a';
+
+    int *pt1 = &s;
+    float *pt2 = &f;
+    char *pt3= &a;
+    printf(%d,%f,&c, *pt1,*pt2,*pt3);
+};
+```
+
+En aquest codi, podem veure que si fessim printf tal que:
+
+ veuirem respectivament, 10, 10,5,a, ja que amb la instrucció int *pt1 = &s, dona el que hi ha dins de l'adreça de memòria.
+
+ ```c
+ int n = 2;
+int *ptr1 = NULL;
+ptr1 = &n;
+(*ptr1)++        //Modifiquem el valor de la variable a la que apunta
+ptr1++           //Modifiquem l'adreça de memòria on apunta
+```
+Tenim que l'output serà l'adreça de memòria de n incrementada una posició i dins d'aquesta adreça de memòria, tenim que el contigut n'és 3.
+
+```c
+#include <stdio.h>
+
+void sumar_per_referencia(int *a, int *b) {
+    *a = *a + *b;
+}
+
+int main() {
+    int x = 5; int y = 3;
+    printf("Abans de la crida per referència: x = %d, y = %d\n", x, y);
+    sumar_per_referencia(&x, &y);
+    printf("Després de la crida per referència: x = %d, y = %d\n", x, y);
+    return 0;
+}
+```
+
+En aquest programa podem veure els pàs de paràmetre per refèrencia, es pasa a la funció l'adreça de memòria tant d'x com a y, però en la funció es tracten amb els punters que apunten a l'adreça de memòria, per tant, simplement s'incrementa el contingut que hi ha dins de l'adreça de memòria de x a + b vegades.
+
+### Stack Vs LIFO
+
+Stack: És una estructura LIFO (Last-In,First-Out). La pila és una regió especial de memòria i la gestiona automàticament la CPU, de manera que no cal assignar ni desassignar memòria.
+
+![Esquema del funcionament d'una pila LIFO, vist a EDC II](image-3.png) 
+
+*Figura 1. Representació del funcionament d’una pila LIFO*
+
+HEAP: La heap és una àrea de memòria on s’assigna memòria de manera dinàmica durant el temps d’execució.
+
+He vist que la Heap pot ser representada en forma de graf, no entenc molt bé el perqué, volia posar una imatge però no puc posar quelcom que no entenc.
+
+La heap permet emmagatzemar items a la memòria en quaelvol ordre.Podem accedir a ell en qualsevol moment.És més localitzar la dada específica.
+
+* Interpretació de codi 
+```c
+int main() {     
+    int y;   
+    char *str; 
+    y = 4;
+    printf("stack memory: %d\n", y);
+    str = malloc(100*sizeof(char)); 
+    str[0] = 'm';
+    printf("heap memory:%c\n", str[0]); 
+    free(str);         
+    return 0;
+}
+```
+En aquest codi, se'ns vol ensenyar com funciona tant l'stack com el heap.
+Per una part, podem veure com en l'stack s'emmagatzemen les variables locals i les funcions. En aquest cas són main i y. Després, podem veure com amb malloc reservem 100 * bytes d'un char.Dins del punter de caràcters és posa m a la posició str[0], després es mostra la m emmgagatzemada a la heap i s'allibera la memòria.
+
+![alt text](image-4.png)
+
+```c
+void ordenar(int n, int* ptr)
+{
+    int i, j, t;
+    for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+            if (*(ptr + j) < *(ptr + i)) {
+                t = *(ptr + i);
+                *(ptr + i) = *(ptr + j);
+                *(ptr + j) = t;
+            }
+        }
+    }
+}
+
+int 
+main() {
+    char msg[250];
+    int *a, n, i;
+
+    sprintf(msg, "Introdueix el nombre d'elements de l'array: \n");
+    write(STDOUT_FILENO, msg, strlen(msg));
+    scanf("%d", &n);
+
+    a = (int*)malloc(n * sizeof(int));
+    if (a == NULL) {
+        perror("Error en reservar memÃ²ria");
+        exit(EXIT_FAILURE);
+    }
+
+    for (i = 0; i < n; i++) {
+        sprintf(msg, "Introdueix un element de l'array: \n");
+        write(STDOUT_FILENO, msg, strlen(msg));
+        scanf("%d", a + i);
+    }
+
+    ordenar(n, a);
+
+
+    for (i = 0; i < n; i++) {
+        sprintf(msg, "a[%d] = %d\n", i, *(a + i));
+        write(STDOUT_FILENO, msg, strlen(msg));
+    }
+
+    free(a);
+
+    exit(EXIT_SUCCESS);
+}
+```
+
+* Declaracions
+
+    *char msg[250];
+    *int *a, n, i;
+* Esquelet del programa
+    * Amb la funció sprintf podem printejar una sortida en un buffer de memòria (string)
+    * Després s'escriu al fitxer, passant el descriptor de fitxer, essent msg el mateix buffer i strlen determina la mida d'strings de chars.
+    * En una adreça de memòria, posem el número que ha posat l'usuari.
+    * Es reserva a la heap , la MIDA: malloc(n * sizeof(int)). En cas d'error es retorna NULL.
+    * En cas de succés, esrivim els elements que l'usuari vulgui al fitxer, dins la mida que ha introduit.
+    * Després dins del mateix fitxer, s'ordena mitjançant bubble sort de més petit a més gran, es a dir de A a la Z.
+    * Un cop hem ordenat l'array de chars, printejem els elements de manera ordenada. I els esrivim dins de msg.
+    * Un cop acabat alliberem la memòria dinàmica assignada.
+
+Sigui el següent codi, utlitzant la funció anterior:
+```c
+capta_dades(int n, int* nums) {
+  while (scanf("%d", &num) != EOF) {
+    if (n >= max_elements) {
+      max_elements *= 2;
+      int* temp = (int*)realloc(nums, max_elements * sizeof(int));
+      if (temp == NULL) {
+        printf("Error en l'assignació de memòria.\n");
+        free(nums);
+        return 1;
+      }
+      nums = temp;
+    }
+  nums[n] = num;
+  n++;
+  }
+}
+int main() {
+    int* nums = NULL;  
+    int n = 0, max_elements = 10, num;
+
+    nums = (int*)malloc(max_elements * sizeof(int));
+    if (nums == NULL) {
+        printf("Error en l'assignació de memòria.\n");
+        return 1;
+    }
+
+    capta_dades(n, nums);
+    ordenar(n, nums);
+    free(nums);
+    return 0;
+}
+```
+* Declaracions
+    * int* nums = NULL;  
+    * int n = 0, max_elements = 10, num;
+* Esquelet del programa
+    * Es reserva memòria a la Heap amb max_elements * sizeof(int).
+    * En el captadades es passen tant l'n que és 0 com la Memòria reservada a la Heap.
+    * Recorrem tots els elementos mentre hi hagi memòria, altrament es retorna EOF.
+    * Després, tenim que si el nombre n > max_elements, es dupliquen el màxim d'elements *2, així ens assugurem de que n sigui < max_elements la següent vegada, també es reassgina la memòria. Per després poder reassignar a nums.
+    * Finalement afegim l'element a nums i incrementem n.
+    * Ordenem i allibrem la memòria perquè és bona pràctica.
+    
+### Structs i TypeDef
+
+Typedef: Crear sinònims per a noms de tipus de dades definits prèviament.
+Exemples:
+```c
+typedef int L;
+int a;
+L a;
+```
+Struct: Per a crear classes (com en java)
+```c
+Classe user:
+typedef struct 
+{
+    int pid;
+    char * name;
+    } User; 
+
+Instància de user:
+    User user;
+    user.name="
+    Jordi Mateo";
+    user.pid=5000;
+    
+Una altra instància de user:
+    User * user1;
+    user1->name="Jack sparrow";
+    *(user1).pid=5001;
+    User *user2 = &user;
+```
 ## Exemples pràctics
 
+M’he creat aquests exercicis amb IA. La idea és **deduir què fa cada programa pas a pas** i relacionar-ho amb la teoria vista a classe. (Com estic repassant el tema 1 en la setmana 3, m'he donat la llibertat de posar conceptes encara no vistos)
 M’he creat aquests exercicis amb IA. La idea és **deduir què fa cada programa pas a pas** i relacionar-ho amb la teoria vista a classe. (Com estic repassant el tema 1 en la setmana 3, m'he donat la llibertat de posar conceptes encara no vistos)
 
 #### Exercici 1
