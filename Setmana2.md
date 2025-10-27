@@ -158,9 +158,150 @@ Excloure una crida a sistema en particular, com gettimeofday.
 
 On {X} representa la categoria que t’interessa.
 
-Els filtres a strace es poden classificar en diverses categories per facilitar la depuració i l’anàlisi:
+### Crides a sistema
+
+Concepte: És un telefon intern que els programes utilitzen per a demanar serveis al SO.
+
+![alt text](image-13.png)
+
+En aquesta imatge podem veure la portecció de la CPU(unitat central de processament) en múltiples nivells de seguretat.
+
+En el Ring 0, desde el punt de vista del Kernel podem dir que  el ring 0 és on té més llibertat i l'anell 3 és on es troben els serveis de l'usuari, per exemple on es troben els meus programes.
+
+Per tant, té sentit que el kernel s'executi en mode priveligiat (ring 0) amb accés complet al maquinari. Els serveis del mode usuari demanen permís al kernel. Aquests s'executen en l'anell 3 que és el més restringit, de manera segura.
+
+Com pot un procés en mode usuari notificar al kernel que necessita fer alguna cosa? Si no tenim cap instrucció que ho permeti?
+
+"Com pot un procés, que està tancat en una presó (mode usuari), demanar ajuda al guarda (kernel) si no li està permès obrir la porta?"
+
+Resposta: No pot obrir la porta... però pot fer soroll fins que el guarda vingui a veure què passa.
+
+A partir d'aquesta pregunta podem deduir el concepte d'interrupció.
+
+### FUNCIONAMENT DEL PROCESSADOR
+
+Tenim la següent tabla dins del funcionament de la ram:
+
+| Adreça| Opcode | Operand |
+|------------|------------|------------|
+| 0 | Fila 1, C2 | Fila 1, C3 |
+| 1 | Fila 2, C2 | Fila 2, C3 |
+
+| Adreça| Valor|
+------------|------------|
+|30| Fila 1, C2 | Fila 1, C3 |
+| 31 | Fila 2, C2 | Fila 2, C3 |
+
+Que és cada cosa?
+
+* Adreça : Adreçes de memòria dins de la RAM
+
+* Opcode, operand : Instruccions en sí que la CPU vol fer. Per altra part. l'operand és la direcció de memòria. (Do this ---> to this)
+
+* Valors: Valors amb els que la CPU pot treballar
+
+Suposem que tenim el següent programa a executar 
+```c
+
+int main(int argc, char * argv[])
+int a = atoi(argv[1]);
+int b = atoi(argv[2]);
+
+return a + b;
+```
+Suposant que l'usuari ha passat com a paramètres el 5 i el 7, tenim, dins de la segona taula:
+
+| Adreça| Valor|
+------------|------------|
+|30| 5| 
+| 31 | 7|
+
+Dins de la primera taula, tenim( hi ha instrccions que m'enrecordo de EDC II), la relació entre aquestes dos taules s'anomena **pipelining**:
+
+| Adreça| Opcode | Operand |
+|------------|------------|------------|
+| 0 | LOAD | 30 |
+| 1 | ADD | 31|
+| 2 | STORE | 32|
+
+La CPU té un rellotge intern, un tick d'aquest, señala el començaent d'un nou fetch.
+
+Es pot dir que es segueix el següent procés:
+
+Fetch → Decode → Execute → Memory → Writeback.
+
+### Interrupcions
+
+Tenim que un dispostiu de E/S com podria ser un teclat, té menys velocitat que la CPU o la RAM. 
+
+Tipus d'interrupció:
+
+Hardware:
+
+* Polling: Esperem fins que el dispositiu no estigui ocupat. Si no està ocupat, fem una operació E/S
+
+* Hardware: Prenem una tecla del teclat (ctrl c) a la terminal. (Es fa un sleep i desprésuna subrutina)
+
+Software:
+
+* Int 0, 6, 7.Senyals que s'han fet a teoria.
+
+### Taules d'interrupció
+
+![alt text](image-14.png).
+
+És una estructura de dades que asocia una llista de drivers d'interrupcions. Cadascuna de les entrades en la taula de vectors d'interrupcions, és la direcció d'un driver d'interrupció.
+
+Si rebo una instrucció serà el propi kernel el que em dirà quina adreça apunta la ISR corresponent. 
+
+Per tant, té sentit que la CPU no sapigui quin codi executis si es produis això. 
+
+```c
+static __init void
+idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int size, bool sys)
+{
+	gate_desc desc;
+
+	for (; size > 0; t++, size--) {
+		idt_init_desc(&desc, t);
+		write_idt_entry(idt, t->vector, &desc);
+		if (sys)
+			set_bit(t->vector, system_vectors);
+	}
+}
+```
+### Excepcions
+
+Concepte: Evento que se produce cuando se ejecuta el programa de forma que interrumpe el flujo normal de instrucciones.
+
+Hi ha més tipus d'excepcions però prefereixo tractar-ho als exercicis.
+
+### Trap
+Intentaré, amb les meves paraules, explicar com s'origina el concepte de trap a partir d'aquesta imatge.
+![alt text](image-15.png)
+En aquesta imatge podem veure la dualitat entre el mode usuari i el mode kernel. Tenint el mode usuari, qualsevol programa que generi una excepció o una interrupció. Llavors les ha de tractar el kernel. Per això s'origina el concepte de trap que és la interrupció software que li demana permís al kernel.
+El kernel accepta la trap, gestiona la interrupció o la excepció i torna a mode usuari.
+
+Es pot explicar amb la següent imatge:
+![alt text](image-16.png)
 
 
+
+
+
+### MECANISMES D'EXECUCIÓ
+
+Flux d'una syscall:
+
+Preparació: Programa posa arguments en registres
+
+Trap: Instrucció syscall/int 0x80 (interrupció software)
+
+Canvi a mode kernel: CPU salta a rutina del kernel via IDT
+
+Execució: Kernel valida i executa la funció corresponent
+
+Retorn: Resultat torna via registres + torna a mode usuari.
 
 ## Exemples pràctics
 ### P1 Un kernel pot desactivar les interrupcions en algún moment? Perquè?
