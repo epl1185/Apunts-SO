@@ -101,7 +101,7 @@ Combinen elements de nuclis monolítics i microkernel.
 
 Pel que fa a tot això del 'nucli híbrid', només és màrqueting. És oh, aquests micronuclis tenien una bona relació qualitat-preu, com podem intentar obtenir una bona relació qualitat-preu per al nostre nucli funcional? Ah, ja ho sé, fem servir un nom interessant i intentem insinuar que té tots els avantatges de relació qualitat-preu que té aquest altre sistema'» - Linus Torvalds
 
-## Kernel Modular
+### Kernel Modular
 
 “Modular” quiere decir que el cervell està fet de peces que es poden posar o deixar sense tenir que canviar tot el sistema.
 Cada mòdul és com un petit bloc que fa una tasca concreta:
@@ -285,6 +285,18 @@ El kernel accepta la trap, gestiona la interrupció o la excepció i torna a mod
 Es pot explicar amb la següent imatge:
 ![alt text](image-16.png)
 
+En aquest cas, tenim que en l'espai d'usuari s'ha escrit en programa en C amb la funció int open(const char * ruta , int oflag , ...); tal que cridi al kernel mitjançant una syscall (trap en el kernel). La CPU canvia a mode supervisor i salta a la rutina del kernel indicada a la IDT. En l'espai del Kernel, es comproven els descriptors i els permissos. I s'executa la rutina de tractament de open() llegint les dades del dispositiu E/S. Es retorna un nombre positiu o -1 en cas d'error.El mode kernel torna a l'espai usuari i retorna el valor.
+```c
+//Executem a user space
+mov edx,4;// message length
+mov ecx,msg;//message to write
+mov ebx,1;//file descriptor (stdout)
+mov eax,4;//system call number (sys_write)
+int 0x80;//interrupt! Number 128 (0x80 in hex)
+```
+
+### Punters i seguretat (I)
+
 
 
 
@@ -375,6 +387,53 @@ Cert, entenc que en el micronucli cada cosa va per separat.
 
 LES HE ENCERTAT TOTES :))
 
+### P4 Digues que fa aquest codi en relació a les syscalls.
+```c
+__visible noinstr bool do_syscall_64(struct pt_regs *regs, int nr)
+{
+    nr = syscall_enter_from_user_mode(regs, nr); 
+    if (!do_syscall_x64(regs, nr) && !do_syscall_x32(regs, nr) && nr != -1) {
+        regs->ax = __x64_sys_ni_syscall(regs);
+    }
+    syscall_exit_to_user_mode(regs);
+    return true;
+
+	/* syscall_enter_from_user_mode(regs, nr)
+Canvia a mode kernel.
+Realitza validacions de seguretat i prepara els registres (RAX, RDI, RSI, etc.).
+*/
+/*
+syscall_exit_to_user_mode(regs)
+Prepara els registres per tornar a mode usuari.
+*/
+}
+```
+Podem veure que en aquesta funció és passen dos arguments d'entrada, un que és una classe de punter cap als registes i un enter que indica el mode en el qual s'accedeix a ells.
+Després es canvia a mode kernel tal com diuen els comentaris, es retorna un enter que hauria d'indicar el mode de lectura. En el cas que no es pugui fer la syscall ni el RAX ni en el EAX ni tampoc tinguem permissos de lectura o escriptura. La propietat ax dels registres es inicialitzada a uns nous registres. Finalment tornem a mode usuari i com que s'ha fet bé la crida retornem true.
+
+Correccions per part de la IA:
+
+
+❌ Lo que necesita corrección:
+"un enter que indica el mode en el qual s'accedeix a ells"
+
+❌ Incorrecto: nr no es un "modo de acceso" - es el número de syscall que el usuario quiere ejecutar (ej: 1 = exit, 2 = fork, 3 = read, etc.)
+
+"es retorna un enter que hauria d'indicar el mode de lectura"
+
+❌ Incorrecto: syscall_enter_from_user_mode() retorna un número de syscall posiblemente modificado, no un "modo de lectura".
+
+"En el caso que no es pugui fer la syscall ni el RAX ni en el EAX"
+
+❌ Confuso: RAX y EAX son el mismo registro (RAX en 64-bit, EAX en 32-bit). No se trata de "no poder hacerla en RAX ni EAX".
+
+"ni tampoc tinguem permissos de lectura o escriptura"
+
+❌ Parcialmente correcto: La condición verifica si la syscall no existe o no está implementada, no específicamente permisos.
+
+"La propietat ax dels registres es inicialitzada a uns nous registres"
+
+❌ Incorrecto: regs->ax = __x64_sys_ni_syscall(regs) establece el registro AX (donde va el valor de retorno) a lo que retorne la función "not implemented", no a "nuevos registros".
 
 
 
@@ -383,6 +442,6 @@ LES HE ENCERTAT TOTES :))
 Que és el directori /dev/? Perquè amb l'expliació de la IA no ho acabo d'entendre.
 
 ## Reflexions personals
--Treballar més.
+- Treballar més perquè sino no arribaré a cobrir el temari.
 
 ![alt text](image-12.png)
