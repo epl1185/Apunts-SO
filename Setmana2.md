@@ -295,8 +295,111 @@ mov eax,4;//system call number (sys_write)
 int 0x80;//interrupt! Number 128 (0x80 in hex)
 ```
 
+❌ Puntos que Necesitan Corrección:
+
+1. Confusión entre open y write
+
+Dices:
+
+"función int open(const char * ruta , int oflag , ...)"
+
+Pero el código muestra:
+
+asm
+
+mov eax,4  ; system call number (sys_write)
+
+Corrección:
+
+Estás explicando open() pero el código es para write()
+
+eax=4 corresponde a sys_write, no a open
+
+open sería eax=5 en muchas arquitecturas x86
+
+2. Descripción Incorrecta de la Ejecución en Kernel
+
+Dices:
+
+"llegint les dades del dispositiu E/S"
+
+Esto es incorrecto para esta syscall específica:
+
+write (código mostrado): Envía datos al dispositivo, no los lee
+
+open (que mencionas): Abre un archivo, no necesariamente lee datos del dispositivo
+
+3. Falta Especificar los Registros Correctos
+
+Para write() los registros son:
+
+eax=4 - número de syscall
+
+ebx - file descriptor (1 = stdout)
+
+ecx - buffer de datos a escribir
+
+edx - longitud de datos
+
+🎯 Explicación Corregida y Mejorada:
+
+Para el Código Mostrado (write):
+
+c
+
+// En espacio usuario - programa en C
+
+write(1, msg, 4);  // Equivalente en C
+
+Flujo Corregido:
+
+Usuario ejecuta int 0x80 con parámetros en registros
+
+CPU cambia a modo kernel y busca en IDT[0x80]
+
+Kernel ejecuta do_int80_syscall_32()
+
+Kernel verifica eax=4 → ejecuta sys_write()
+
+Validaciones:
+
+¿Existe el file descriptor 1?
+
+¿Tiene permisos de escritura?
+
+¿El buffer está en espacio usuario válido?
+
+Copia datos de espacio usuario a kernel (copy_from_user())
+
+Envía datos al dispositivo (consola/tty)
+
+Retorna número de bytes escritos o -1 en error
+
+Vuelve a modo usuario
+
 ### Punters i seguretat (I)
 
+Tots els punters que provenen de l’usuari han de ser validads abans de ser utilitzats pel kernel.
+
+Funcions com __chk_user_ptr(ptr) comproven si el punter apunta a espai usuari vàlid.
+
+Taula d’excepcions: el kernel registra quines instruccions poden accedir a l’espai usuari
+
+### Virtual Dynamic Shared Object (VDSO)
+
+Objectiu:
+Evitar la transició completa a mode kernel, reduint latència i cost de syscalls repetitives.
+
+Exemples:
+* gettimeofday()
+* time()
+* getpid()
+
+### Canvi de context
+
+![alt text](image-17.png)
+
+El concepte de canvi de context ( de la CPU) s'utilitza per a denotar una acció en que el SO treu el procés que s'estava executant en la CPU (bé perquè ha acabat, ha expirat el seu temps de CPU, o perquè espera per un recurs o succés) i n'hi posa un altre. Per dur a terme aquesta tasca, el SO guarda els "registres de la CPU" del procés sortint en el seu corresponent PCB, i restaura els registres de la CPU del procés entrant també en el seu PCB. Aquest darrer procés pot iniciar la seva execució, o continuar el que estava fent com si res hagués passat. (Cooiat del llibre de SO de Lleida)
 
 
 
@@ -434,6 +537,291 @@ Correccions per part de la IA:
 "La propietat ax dels registres es inicialitzada a uns nous registres"
 
 ❌ Incorrecto: regs->ax = __x64_sys_ni_syscall(regs) establece el registro AX (donde va el valor de retorno) a lo que retorne la función "not implemented", no a "nuevos registros".
+
+### Ex5 Digues que fa el següent codi en relació al temari de les syscalls.
+
+```c
+static __always_inline bool do_syscall_x64(struct pt_regs *regs, int nr)
+{
+    unsigned int unr = nr;
+    if (likely(unr < NR_syscalls)) {
+        unr = array_index_nospec(unr, NR_syscalls);
+        regs->ax = x64_sys_call(regs, unr);
+        return true;
+    }
+    return false;
+}
+```
+
+Ara podem dir que el codi,Podem veure que en aquesta funció és passen dos arguments d'entrada, un que és una classe de punter cap als registes i un enter que indica la crida a sistema en el qual s'accedeix a ells.
+
+En el cas de que hi hagi un nombre de syscalls major que el nombre total de syscalls suportades, simplement retornem fals, perquè llavors no podem fer la crida. Altrament mirem que l'index del número de la syscall, (suposnat que d'això s'encarrega una estructura de dades.), modiquem el registre ax per tal de guardar la syscall dins del sistema.
+Fimalment retornem true.
+
+Correcció:
+
+
+```c
+static __always_inline bool do_syscall_x64(struct pt_regs *regs, int nr)
+{
+    unsigned int unr = nr;
+    
+    // 1. COMPROVACIÓ DE RANG: Verifica que el número de syscall existeix
+    if (likely(unr < NR_syscalls)) {
+        
+        // 2. PROTECCIÓ CONTRA ATACS: Evita accessos fora de rang per especulació
+        unr = array_index_nospec(unr, NR_syscalls);
+        
+        // 3. EXECUCIÓ DE LA SYSCALL:
+        //    - x64_sys_call accedeix a la TAULA de syscalls (sys_call_table[unr])
+        //    - Executa la funció de kernel corresponent
+        //    - El resultat es guarda a regs->ax (valor de retorn per l'usuari)
+        regs->ax = x64_sys_call(regs, unr);
+        
+        return true;  // Syscall executada amb èxit
+    }
+    return false;  // Número de syscall invàlid
+}
+```
+
+### Ex6 Analitza el funcionament de la funció get_user(x, ptr)
+
+```c
+
+#define get_user(x, ptr)                    
+({                              
+    const void __user *__p = (ptr);             
+    might_fault();                      
+    access_ok(__p, sizeof(*ptr)) ?      
+        __get_user((x), (__typeof__(*(ptr)) __user *)__p) :
+        ((x) = (__typeof__(*(ptr)))0,-EFAULT);      
+})
+```
+
+Definim la funció get_user amb dos paràmetres d'entrada. Declarem el punter de l'usuari dintre del kernel,Seguidament fem might_fault() perquè el codi següent pot generar un page fault. Finalment es comprova si l'accés al punter a sigut exitós amb la funció access_ok, es llegeix l'adreça de memòria corresponent a l'usuari.
+
+#define get_user(x, ptr)
+x: Variable donde se guardará el valor leído
+
+ptr: Puntero en espacio usuario que queremos leer
+
+2. Declaración del puntero:
+
+c
+const void __user *__p = (ptr);
+
+__user → Atributo que indica que es un puntero al espacio de usuario
+
+No es solo una declaración - es una anotación para el compilador que ayuda en análisis estático
+
+3. might_fault():
+
+No solo "podría generar" - es una anotación para el scheduler
+
+Indica al kernel que esta región puede dormir (sleep) si hay un page fault
+
+Permite que otros procesos se ejecuten durante la posible espera
+
+4. access_ok(__p, sizeof(*ptr)):
+
+Verifica DOS cosas:
+
+Que __p está en espacio usuario (no en kernel)
+
+Que el rango [__p, __p + sizeof(*ptr)) es accesible
+
+No garantiza que la página esté mapeada - solo verifica direcciones válidas
+
+5. Rama TRUE - __get_user():
+
+Realiza la lectura REAL desde espacio usuario
+
+Maneja page faults si ocurren durante la lectura
+
+Copia el dato desde ptr hasta x
+
+6. Rama FALSE - Error:
+
+```c
+((x) = (__typeof__(*(ptr)))0, -EFAULT)
+```
+Asigna 0 a la variable x (por seguridad)
+
+Retorna -EFAULT (Bad Address) como resultado de la macro
+
+### Ex 7 Respón
+
+Quina és la diferència de temps entre una crida a sistema i una crida a procediment?
+
+Quina és la complexitat d’una crida a sistema?  
+
+Per què una crida es més costosa que l’altre?
+
+Resposta a tot:
+
+El nombre d’instruccions que s’han d’executar en aquesta transició pot variar segons diversos factors, com ara la implementació concreta del sistema operatiu i la naturalesa de la crida al sistema. En general, aquesta transició implica un canvi de context, mentre que una crida a funció normal s’executa dins del mateix mode i, per tant, comporta menys sobrecàrrega i és més ràpida en temps d’execució. En termes generals, una crida a funció serà menys complexa que una crida a sistema. Però, sempre dependrà de les accions a realitzar en cada cas. (Copiat d'un mail teu)
+
+### EX8 Preguntes d'exàmen.
+
+1. Anomena el mecanisme d’accés al kernel en les sitacions següents: (0,75 punt)
+
+• El planificador de processos decideix que un altre procés s’executi ja que el temps de CPU
+ha acabat.
+
+Canvi de context. (Incorrecte: Interrupció de rellotge)
+
+• Un procés intenta accedir a una regió de memòria prohibida.
+
+Llavors es llença una excepció.(Correcte:Segmentation fault)
+
+• Un programa executa la funció write().
+
+Trap. Correcte.
+
+Quina és la importancia de tenir una taula de crides a sistema indexada per un número de
+crida a sistema en lloc de permetre a l’usuari especificar una adreça de funció per ser cridada
+pel nucli un cop es faci el canvi de context? (0,75 punts)
+
+Ens evitem bugs dintre del kernel. Si l'usuari pogués especificar l'adreça hi hauria possibilitat d'error i que en compte d'esperar una crida a sistema com podria ser fork(), en retornes una altra com podria ser write(). (A mitjes)
+
+Correcció:
+
+La importància rau en la seguretat i el control. Si es permetés a l'usuari especificar una adreça de funció arbitrària, es podrien executar funcions no autoritzades del kernel, leading a vulnerabilitats greus com:
+
+Elevació de privilegis: L'usuari podria cridar funcions internes del kernel per obtenir accés no autoritzat.
+
+Corrupció de memòria: Es podrien modificar estructures de dades crítiques del kernel.
+
+Inestabilitat del sistema: Executar codi no validat podria causar panics del kernel.
+
+Imagina que el nostre sistema operatiu té la següent crida a sistema. Indica quin és el seu
+propòsit i quins perillos pot comportar: (0,5 punts)
+```c
+1 void my_syscall(unsigned long *addr, const char *msg) {
+2 copy_to_user(addr, msg);
+3 }
+```
+
+Doncs, tal com hem dit abans, aquesta funció rep dos paràmtres d'entrada, un en el qual sd li apssa l'adreça de memòria i el missatge que vol que l'usuari rebi. Però si deixem especificar l'adreça de meòria hi ha possibiltat d'error de que s'indexi una crida a sistema com podria ser fork(), i ens retornes una altra com podria ser write().
+
+Correcció: 
+
+Em retornarà qualsevol adreça de memòria i passar-lo a usuari. Per fer-lo no vulnerable podriem comprovar si addr és espai d'usuari i si no mostem un missatge. En general volem consultar el contigut d'una de memòria. Ho sabía però no he sabut transmetre.
+
+
+Fet per IA:
+
+### Ex9 En un sistema Linux, un driver de tarjeta gráfica falla frecuentemente.
+
+```c
+// Comportamiento observado con strace
+openat(AT_FDCWD, "/dev/gpu0", O_RDWR) = 3
+ioctl(3, DRM_IOCTL_MODE_SET, 0x7ffe3f4a3d20) = -1 EFAULT
+close(3) = 0
+```
+
+a) ¿En qué arquitectura de kernel (monolítico vs microkernel) sería más crítico este fallo y por qué?
+
+En la arquitecta monolítica, porqué en la arquitectura monolítica si falla un driver, es más díficil localizar el error. Por otra parte en la microkernel es más fácil ya que cada módulo es diferente.
+
+b) Si este driver se ejecutara en un microkernel, ¿cómo se recuperaría el sistema del fallo?
+
+Simplemente sacando el módulo donde falle el driver, ver el error, solucionar-lo y volverlo a poner.
+
+c) Propón un mecanismo que permita detectar y reiniciar automáticamente el driver sin afectar a las aplicaciones gráficas.
+
+Una syscall?
+
+### Ex10 Necesitas crear una syscall process_monitor que permita monitorizar el uso de recursos de otros procesos.
+```c
+long process_monitor(pid_t target_pid, struct monitor_stats __user *stats);
+```
+
+Preguntas:
+
+a) Identifica 3 riesgos de seguridad en esta syscall y cómo mitigarlos
+
+b) ¿Qué validaciones debería hacer el kernel antes de acceder a target_pid?
+
+c) Diseña el código de la función copy_to_user para stats considerando posibles ataques
+
+### Ex11 Análisis de Performance Comparado
+Escenario: Tienes estos datos de benchmark:
+
+
+|Operación |Kernel Monolítico|Microkernel| Híbrido|
+|----------|------------| ------------| -------|
+open() + close()| 1.2µs| 3.8µs |1.5µs |
+Context Switch|	0.8µs| 1.5µs | 0.9µs|
+Driver Failure Recovery| 120ms |15ms |45ms|
+
+a) Para un servidor web que hace 10,000 operaciones de archivo por segundo, ¿qué kernel elegirías?
+
+b) Para un sistema médico crítico, ¿cuál preferirías y por qué?
+
+### Ex12 El Misterio del File Descriptor Perdido
+```c
+c
+int vulnerable_open(const char __user *filename) {
+    int fd;
+    char kernel_buffer[256];
+    
+    // Copiamos el nombre del archivo
+    if (copy_from_user(kernel_buffer, filename, 256)) {
+        return -EFAULT;
+    }
+    
+    // Abrimos el archivo
+    fd = filp_open(kernel_buffer, O_RDONLY, 0);
+    
+    return fd;
+}
+```
+
+
+
+a) Identifica 2 vulnerabilidades graves en este código
+
+b) ¿Cómo podría un atacante usar esta syscall para leer archivos del sistema?
+
+c) Reescribe el código aplicando el principio de mínimo privilegio
+
+
+[Proceso A] open("/etc/shadow", O_RDONLY) = -1 EACCES
+[Proceso A] socket(AF_UNIX, SOCK_STREAM, 0) = 4
+[Proceso A] connect(4, "/var/run/privileged_socket") = 0
+[Proceso A] write(4, "GET_SHADOW", 10) = 10
+[Proceso B] read(3, "GET_SHADOW", 10) = 10
+[Proceso B] open("/etc/shadow", O_RDONLY) = 5
+
+Preguntas:
+
+a) ¿Qué técnica de escalada de privilegios se está intentando?
+
+b) ¿Cómo podría el kernel detectar y prevenir este patrón?
+
+Síntoma: read() tarda 50ms en ciertas condiciones, pero normalmente tarda 0.1ms.
+
+Diagnóstico con strace:
+
+text
+
+read(3, 0x7ffe12345678, 1024) = 1024   # Normal
+
+read(3, 0x7ffe12345678, 1024) = 1024   # Normal  
+
+read(3, 0x7ffe12345678, 1024) = 1024   # 50ms de bloqueo!
+
+Preguntas:
+a) ¿Qué podría causar esta variación en un kernel monolítico?
+
+b) ¿Y en un microkernel?
+
+
+
+
+
+
 
 
 
