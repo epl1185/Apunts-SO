@@ -20,8 +20,10 @@ Fem $ gedit &$ a la terminal de Linux, el So crea un nou procés per l'usuari qu
 
 #### Comanda: Ps 
 Ens permet veure tots els processos de l'usuari en la terminal actual.
+
 Ps -e per veure tots els del sistema. El procés ps en si també és un procés.
-Tots els processos tenen un PID, cada PID és unic, poden estar assignats o no a la terminal, i tenen temps de procediment.
+
+Tots els processos tenen un PID, cada PID és unic, poden estar assignats o no a la terminal, i tenen temps de procediment.El kernel s'encarrega de comprovar si el pid ja pertany a una tasca.
 
 ### Estats dels processos
 <img width="626" height="362" alt="image" src="https://github.com/user-attachments/assets/8a28bf06-a59e-4420-be50-b3f7120bd9c6" />
