@@ -15,8 +15,7 @@ Concepte:
 És un progama que s'està executant.
 
 Exemple:
-
-Fem $ gedit &$ a la terminal de Linux, el So crea un nou procés per l'usuari que ha executat la comanda. El SO li assigna la mem`roia al procés on hi copia la imatge del programa executable (en /bin/gedit), i una nova estructura de dades, el PCB.
+Fem $ gedit &$ a la terminal de Linux, el SO crea un nou procés per l'usuari que ha executat la comanda. El SO li assigna la memòria al procés on hi copia la imatge del programa executable (en /bin/gedit), i una nova estructura de dades, el PCB.
 
 ### PCB
 <img width="421" height="501" alt="image" src="https://github.com/user-attachments/assets/f64b88c0-5886-4549-b2c7-d5e7649815fe" />
@@ -46,15 +45,12 @@ La informació mínima que conté el PCB és la següent:
 
   
 
-
-
-
 #### Comanda: Ps 
 Ens permet veure tots els processos de l'usuari en la terminal actual.
 
 Ps -e per veure tots els del sistema. El procés ps en si també és un procés.
 
-Tots els processos tenen un PID, cada PID és unic, poden estar assignats o no a la terminal, i tenen temps de procediment.El kernel s'encarrega de comprovar si el pid ja pertany a una tasca.
+Tots els processos tenen un PID, cada PID és unic, i un identiﬁ- cador de grup de processos (gid), on pid, gid ∈ N+. Poden estar assignats o no a la terminal, i tenen temps de procediment.El kernel s'encarrega de comprovar si el pid ja pertany a una tasca.
 
 Ps -l mostra més informació sobre la llista de procesos.
 
@@ -111,15 +107,37 @@ Execució (usuari/kernel) → exist() → zombie:
 ** Estat zombie: Conserva recursos fins que el pare reculli el seu estat de sortida.
 ** Intendencia:Neteja final de recursos del procés
 ### Intercanvi de processos
+<img width="521" height="401" alt="image" src="https://github.com/user-attachments/assets/4e6d8d9b-5f70-489c-ab5e-53802b514a1e" />
 
+El kernel gestiona una estructura de taula (diccionari) semblant a la representada en la imatge següent per poder accedir de forma eficient als diferents PCBs. Aquesta estrcutura de dades es coneix com a Taula PCB.
 
-
-
+Per trobar la taula de processos necessitem observar la següent ruta: /proc:
+```c
+sleep 60 &
+less /proc/{pid}/stat
+less /proc/{pid}/environ
+```
 ## Exemples pràctics
 
 ### P1 Expliques que fa la següent imatge en relació als estats dels processos
 
 <img width="563" height="137" alt="image" src="https://github.com/user-attachments/assets/41ae497e-64b9-4375-aad5-02b4d8eacacc" />
+
+### P2 És el mateix un canvi de context que un intercanvi de processos?
+
+NO, són conceptes relacionats però diferents.
+
+|Canvi de Context|	Intercanvi de Processos|
+|----------------|--------------------------|
+|Canvia la CPU entre processos |	Mou processos entre RAM i disc|
+|Operació de CPU/planificador|	Operació de memòria/gestor de memòria|
+|Ràpid (microsegons)| Lent (mil·lisegons)|
+|Sempre ocorre entre processos |	Ocorre quan falta memòria física|
+|Transparent per als processos |	Afecteda el rendiment visiblement|
+
+Exemple: Timer interrupt fa que el kernel passi de Firefox a Chrome.
+
+Exemple: Memòria RAM plena, el kernel mou processos inactius al disc.
 
 
 
