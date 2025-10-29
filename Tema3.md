@@ -18,6 +18,37 @@ Exemple:
 
 Fem $ gedit &$ a la terminal de Linux, el So crea un nou procés per l'usuari que ha executat la comanda. El SO li assigna la mem`roia al procés on hi copia la imatge del programa executable (en /bin/gedit), i una nova estructura de dades, el PCB.
 
+### PCB
+<img width="421" height="501" alt="image" src="https://github.com/user-attachments/assets/f64b88c0-5886-4549-b2c7-d5e7649815fe" />
+
+El PCB és una estructura de dades que permet al sistema operatiu supervisar i control un procés.
+
+La informació mínima que conté el PCB és la següent:
+* Punters. Necessaris per poder implementar les llistes de tots els PCB’s i els diferents estats en que es pot trobar un procés.
+* Estat del procés (explicat en la secció 1.4). P.e. execució, preparat, espera, etc.. •
+* Identiﬁcadors. P.e. identiﬁcador de procés, de grup de processos d’usuari, de grup d’usuaris, etc.
+* Informació sobre els recursos que té assignats. P.e., descriptors dels ﬁtxers oberts.
+* Registres de la CPU.
+* Informació sobre gestió de Memòria. Segons sigui el sistema de gestió de la Memòria (veure Capítol 5) haurà d’emmagatzemar:
+  
+  – Taules de pàgines.
+  
+  – Taules de segments.
+  
+* Informació de comptabilitat. P.e.:
+  
+   – Temps de CPU utilitzat. Tant de sistema (executant dins de l’espai del sistema operatiu) com d’usuari (executant dins de l’espai d’usuari).
+  
+  – Temps d’espera.
+
+   – Temps total d’execució, etc. . .
+* Informació per la planiﬁcació de la CPU. P.e. prioritat del procés, temps de creació, etc.
+
+  
+
+
+
+
 #### Comanda: Ps 
 Ens permet veure tots els processos de l'usuari en la terminal actual.
 
@@ -52,7 +83,27 @@ PROCESS STATE CODES:
 ### Diagrama de transició d'estats
 
 <img width="802" height="611" alt="image" src="https://github.com/user-attachments/assets/0983924b-900a-47e6-a782-c5e7e1ae6dca" />
+ Tenim que el temps de vida d'un procés X pot ser dividit en un conjunt d'estats:
+* Començament: El procés o es pot executar en mode usuari o en mode supervisor. Es prepara el procés a memòria principal.El procés es crea amb un fork() (que és una syscall en si)
+* Planificació i execució:
+INICIAT ---> PREPARAT: Un cop el procés ha estat inicialitzat, el procés pasa a la cua de preparats esperant el seu torn per a executar-se.
 
+PREPARAT ---> EXECUCIÓ(usuari): El planificar asigna la CPU al procés, que comença a executar el codi en l'espai de l'usuari.
+
+* Canvis de context i mode Kernel: Es fan transicions entre el mode usuari mitjaçant syscalls i interrupcions. 
+  
+* Bloqueig i espera. Execució (usuari/kernel) → Esperant un esdeveniment. El procés espera donat per:
+  - Operaciones de E/S
+  - Sincronización (semáforos, señales)
+  - Recursos del sistema
+* Reinici del procés: Esperant un esdeveniment → preparat. El procés passa d'estar suspés a parat. S'envia la senyal SIGCONT per indicar-li la seva preparació, es coloca a la cua de preparats.
+
+*  Finalizació
+Execució (usuari/kernel) → exist() → zombie:
+** El procés crida a exit() per a terminar.
+** Estat zombie: Conserva recursos fins que el pare reculli el seu estat de sortida.
+** Intendencia:Neteja final de recursos del procés
+### Intercanvi de processos
 
 
 
