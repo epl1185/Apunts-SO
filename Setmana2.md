@@ -739,11 +739,15 @@ long process_monitor(pid_t target_pid, struct monitor_stats __user *stats);
 
 Preguntas:
 
-a) Identifica 3 riesgos de seguridad en esta syscall y cómo mitigarlos
+a) Identifica un riesgo de seguridad en esta syscall y cómo mitigarlos.
+
+En este syscall se pide el pid del proceso y una clase de supongo de sus propiedades que es un puntero. Este sistema és vulnarable ya que el usuaroi puede pasar el stats del proceso con características no correctas y provocar errores en el Kernel. Deberíamos comprovar si el pid debería comprvar si el pid és válido dento del espacio del usuario o directamente tal vez no exista.
 
 b) ¿Qué validaciones debería hacer el kernel antes de acceder a target_pid?
 
-c) Diseña el código de la función copy_to_user para stats considerando posibles ataques
+Debería comprovar si el punteero stats existe o no y en el caso que exista que sea en el espacio de usuario.
+
+
 
 ### Ex11 Análisis de Performance Comparado
 Escenario: Tienes estos datos de benchmark:
@@ -757,7 +761,11 @@ Driver Failure Recovery| 120ms |15ms |45ms|
 
 a) Para un servidor web que hace 10,000 operaciones de archivo por segundo, ¿qué kernel elegirías?
 
+Escogería como primera opción el Kernel Monolítico, ya que se nos dice que en general las operaciones de ficheros (como podria ser opne() + close()) son de 1.2 us , que es más rápido que todos los demás tipos de Kernel.
+
 b) Para un sistema médico crítico, ¿cuál preferirías y por qué?
+
+El MicroKernel. Porque solo tarda 15ms en saber si un dirver ha fallado o no.
 
 ### Ex12 El Misterio del File Descriptor Perdido
 ```c
@@ -777,16 +785,48 @@ int vulnerable_open(const char __user *filename) {
     return fd;
 }
 ```
-
-
-
 a) Identifica 2 vulnerabilidades graves en este código
+
+Que directamente, el códgo no contempla la posibilidad de error en el filp_open, puede que el fichero con nombre Filename no exista (el que se pasa como parametro de entrada).
+
+Que no se comprueba el nombre de usuario, de alguna manera, puede que el nombre de usuario sea root o sea cualquier persona ajena a root.
+
+Parcialmente incorrecto:
+
+¿Por qué es grave?
+
+No hay validación de la ruta del archivo
+
+El kernel abre cualquier archivo que exista
+
+Puede leer archivos sensibles del sistema
+
+Buffer Overflow / Desbordamiento
 
 b) ¿Cómo podría un atacante usar esta syscall para leer archivos del sistema?
 
-c) Reescribe el código aplicando el principio de mínimo privilegio
+Pasandóle un filename donde el kernel le de acceso a nuestros datos.
 
+M'ha donar exemples de quins serien els filenames:
+```c
+vulnerable_open("/etc/shadow");        // Hash de contraseñas
+vulnerable_open("/proc/kallsyms");     // Símbolos del kernel
+vulnerable_open("/dev/mem");           // Memoria física completa
 
+// 2. ESCALADA DE PRIVILEGIOS
+vulnerable_open("/root/.ssh/authorized_keys"); // Añadir claves SSH
+vulnerable_open("/etc/sudoers");               // Modificar privilegios
+
+// 3. DENEGACIÓN DE SERVICIO  
+vulnerable_open("/dev/sda1");          // Bloquear disco completo
+vulnerable_open("/proc/1/mem");        // Manipular proceso init
+```
+Com a correcció la IA directament ha decidit donarme el codi correcte:
+```c
+
+HACER ESTOS EJERCICIOS PARA ASEGURAR EL 10 EN ESTE TEMA
+
+### Ex13 Análisis Forense de Syscalls
 [Proceso A] open("/etc/shadow", O_RDONLY) = -1 EACCES
 [Proceso A] socket(AF_UNIX, SOCK_STREAM, 0) = 4
 [Proceso A] connect(4, "/var/run/privileged_socket") = 0
@@ -800,6 +840,7 @@ a) ¿Qué técnica de escalada de privilegios se está intentando?
 
 b) ¿Cómo podría el kernel detectar y prevenir este patrón?
 
+### EX14La Curiosa Case del Syscall Lento
 Síntoma: read() tarda 50ms en ciertas condiciones, pero normalmente tarda 0.1ms.
 
 Diagnóstico con strace:
@@ -816,12 +857,6 @@ Preguntas:
 a) ¿Qué podría causar esta variación en un kernel monolítico?
 
 b) ¿Y en un microkernel?
-
-
-
-
-
-
 
 
 
