@@ -1862,6 +1862,96 @@ int main() {
 }
 ```
 
+### Ex26 El pitjor exerici que podries imaginar (faig això després de haver fet el tema3 i el tema 2)
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+
+int ***crear_matriz_locura(int n) {
+    int ***triple = malloc(n * sizeof(int**));
+    for (int i = 0; i < n; i++) {
+        triple[i] = malloc(n * sizeof(int*));
+        for (int j = 0; j < n; j++) {
+            triple[i][j] = malloc(sizeof(int));
+            *triple[i][j] = i * n + j;
+        }
+    }
+    return triple;
+}
+
+void modificar_matriz(int ****cuadruple_ptr, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            *(*cuadruple_ptr)[i][j] += 100;
+        }
+    }
+}
+
+void funcion_senial(int sig) {
+    static int contador = 0;
+    int *p = malloc(sizeof(int));
+    *p = sig + contador++;
+    printf("Señal %d, valor: %d\n", sig, *p);
+    // LEAK INTENCIONAL - para confundir más
+}
+
+int main() {
+    int n = 3;
+    int ***matriz = crear_matriz_locura(n);
+    
+    // Puntero a puntero a puntero a puntero
+    int ****ptr_matriz = &matriz;
+    
+    modificar_matriz(ptr_matriz, n);
+    
+    // Fork y pipes
+    int pipefd[2];
+    pipe(pipefd);
+    
+    pid_t pid = fork();
+    
+    if (pid == 0) { // Hijo
+        close(pipefd[0]); // Cierra lectura
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                write(pipefd[1], matriz[i][j], sizeof(int));
+            }
+        }
+        close(pipefd[1]);
+        exit(0);
+    } else { // Padre
+        close(pipefd[1]); // Cierra escritura
+        int *buffer = calloc(n * n, sizeof(int));
+        read(pipefd[0], buffer, n * n * sizeof(int));
+        
+        // Manipulación confusa de punteros
+        int *(*func_ptrs[3])(int*) = {NULL, NULL, NULL};
+        
+        signal(SIGUSR1, funcion_senial);
+        kill(pid, SIGUSR1);
+        
+        wait(NULL);
+        
+        // Liberar memoria (¿correctamente?)
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                free(matriz[i][j]);
+            }
+            free(matriz[i]);
+        }
+        free(matriz);
+        free(buffer);
+    }
+    
+    return 0;
+}
+
+
+
 
 
 
