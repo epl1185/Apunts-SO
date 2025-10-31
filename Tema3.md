@@ -117,6 +117,25 @@ sleep 60 &
 less /proc/{pid}/stat
 less /proc/{pid}/environ
 ```
+
+### Creació de processos (fork())
+
+```c
+#include <sys/types.h> # pid_t
+#include <unistd.h>    # fork()
+int main() {
+    pid_t pid = fork();
+    exit(0);
+}
+```
+Fent man fork();
+
+* La función `fork()` crea un nuevo proceso duplicando el proceso que la invoca. Este nuevo proceso se denomina proceso hijo, y el proceso que la invoca se denomina proceso padre.
+* El proceso hijo y el proceso padre se ejecutan en espacios de memoria separados. En el momento de la llamada a fork(), ambos espacios de memoria tienen el mismo contenido.
+* El ID del proceso padre del hijo es el mismo que el ID del proceso padre.
+* El proceso hijo tiene su propio ID de proceso único, y este PID no coincide con el ID de ningún grupo de procesos existente (setpgid(2)) o sesión.
+
+
 ## Exemples pràctics
 
 ### P1 Expliques que fa la següent imatge en relació als estats dels processos
