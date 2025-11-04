@@ -724,14 +724,39 @@ a) ¿En qué arquitectura de kernel (monolítico vs microkernel) sería más cr�
 
 En la arquitecta monolítica, porqué en la arquitectura monolítica si falla un driver, es más díficil localizar el error. Por otra parte en la microkernel es más fácil ya que cada módulo es diferente.
 
+IA upgrade:
+
+* Monolítico: El driver corre en espacio kernel → un fallo crashea todo el sistema
+
+* Microkernel: El driver corre en espacio usuario → solo falla ese componente
+
 b) Si este driver se ejecutara en un microkernel, ¿cómo se recuperaría el sistema del fallo?
 
 Simplemente sacando el módulo donde falle el driver, ver el error, solucionar-lo y volverlo a poner.
+
+// En microkernel:
+
+1. El fallo del driver → genera señal/exception
+
+2. Kernel detecta proceso driver muerto
+
+3. Mata procesos dependientes o los reconnecta
+
+4. Carga nueva instancia del driver
+
+5. Reestablece comunicaciones
 
 c) Propón un mecanismo que permita detectar y reiniciar automáticamente el driver sin afectar a las aplicaciones gráficas.
 
 Una syscall?
 
+* Supervisor de drivers que monitorea heartbeats
+
+* Restart automático al detectar fallo
+
+* Preservar estado de aplicaciones durante recovery
+
+* Timeouts para reconexión transparente
 ### Ex10 Necesitas crear una syscall process_monitor que permita monitorizar el uso de recursos de otros procesos.
 ```c
 long process_monitor(pid_t target_pid, struct monitor_stats __user *stats);
@@ -741,11 +766,21 @@ Preguntas:
 
 a) Identifica un riesgo de seguridad en esta syscall y cómo mitigarlos.
 
-En este syscall se pide el pid del proceso y una clase de supongo de sus propiedades que es un puntero. Este sistema és vulnarable ya que el usuaroi puede pasar el stats del proceso con características no correctas y provocar errores en el Kernel. Deberíamos comprovar si el pid debería comprvar si el pid és válido dento del espacio del usuario o directamente tal vez no exista.
+En este syscall se pide el pid del proceso y una clase de supongo de sus propiedades que es un puntero. Este sistema és vulnarable ya que el usuario puede pasar el stats del proceso con características no correctas y provocar errores en el Kernel. Deberíamos comprovar si el pid debería comprvar si el pid és válido dento del espacio del usuario o directamente tal vez no exista.
+
+// Riesgos específicos:
+1. PID spoofing: usuario monitorea procesos de otros
+2. Buffer overflow: stats con tamaño malicioso  
+3. Kernel pointer leak: stats contiene direcciones kernel
 
 b) ¿Qué validaciones debería hacer el kernel antes de acceder a target_pid?
 
 Debería comprovar si el punteero stats existe o no y en el caso que exista que sea en el espacio de usuario.
+
+1. if (!pid_valid(target_pid)) return -ESRCH;
+2. if (current_uid() != target_process_uid) return -EPERM;
+3. if (!access_ok(VERIFY_WRITE, stats, sizeof(*stats))) return -EFAULT;
+4. if (target_pid == 1 && !capable(CAP_SYS_ADMIN)) return -EPERM; // init protectio
 
 
 
@@ -766,6 +801,14 @@ Escogería como primera opción el Kernel Monolítico, ya que se nos dice que en
 b) Para un sistema médico crítico, ¿cuál preferirías y por qué?
 
 El MicroKernel. Porque solo tarda 15ms en saber si un dirver ha fallado o no.
+
+Sistema médico: FIABILIDAD > RENDIMIENTO
+
+Microkernel: Aísla fallos → un driver defectuoso no mata el sistema
+
+15ms recovery vs 120ms (monolítico) → 8x más rápido recuperándose
+
+Elección correcta: ✅ Microkernel
 
 ### Ex12 El Misterio del File Descriptor Perdido
 ```c
@@ -821,45 +864,6 @@ vulnerable_open("/etc/sudoers");               // Modificar privilegios
 vulnerable_open("/dev/sda1");          // Bloquear disco completo
 vulnerable_open("/proc/1/mem");        // Manipular proceso init
 ```
-Com a correcció la IA directament ha decidit donarme el codi correcte:
-```c
-
-HACER ESTOS EJERCICIOS PARA ASEGURAR EL 10 EN ESTE TEMA
-
-### Ex13 Análisis Forense de Syscalls
-[Proceso A] open("/etc/shadow", O_RDONLY) = -1 EACCES
-[Proceso A] socket(AF_UNIX, SOCK_STREAM, 0) = 4
-[Proceso A] connect(4, "/var/run/privileged_socket") = 0
-[Proceso A] write(4, "GET_SHADOW", 10) = 10
-[Proceso B] read(3, "GET_SHADOW", 10) = 10
-[Proceso B] open("/etc/shadow", O_RDONLY) = 5
-
-Preguntas:
-
-a) ¿Qué técnica de escalada de privilegios se está intentando?
-
-b) ¿Cómo podría el kernel detectar y prevenir este patrón?
-
-### EX14La Curiosa Case del Syscall Lento
-Síntoma: read() tarda 50ms en ciertas condiciones, pero normalmente tarda 0.1ms.
-
-Diagnóstico con strace:
-
-text
-
-read(3, 0x7ffe12345678, 1024) = 1024   # Normal
-
-read(3, 0x7ffe12345678, 1024) = 1024   # Normal  
-
-read(3, 0x7ffe12345678, 1024) = 1024   # 50ms de bloqueo!
-
-Preguntas:
-a) ¿Qué podría causar esta variación en un kernel monolítico?
-
-b) ¿Y en un microkernel?
-
-
-
 
 ## Dubtes i Preguntes
 Que és el directori /dev/? Perquè amb l'expliació de la IA no ho acabo d'entendre.
