@@ -731,6 +731,98 @@ send(mi_telefono, "Te extraño 💔", 13, 0);
 🔒 CONEXIÓN SEGURA: Como una llamada cifrada
 
 🔄 BIDIRECCIONAL: Ambos pueden hablar y escuchar
+### PIPES
+```c
+int pipe(int desc[2]);
+```
+* La crida a sistema pipe(), crea dos descriptors de fitxer. Un de lectura (desc[0]) i un d’escriptura (desc[1]).
+* La informació que s’escriu per desc[1] es llegeix per desc[0]
+* Una vegada el pipe() s’ha creat; per poder utilitzar-lo els processos han d’heretar aquests descriptors del procés pare.
+
+```c
+void sigpipe_handler(int signum) {
+    printf("SIGPIPE...\n");
+    exit(EXIT_SUCCESS);
+}
+int main() {
+  int fd[2]; int r = pipe(fd);
+  pid_t p1 = fork();
+  if (p1 == 0) {
+	close(fd[0]);  
+	sleep(2);  
+	close(fd[1]);  
+	exit(EXIT_SUCCESS);
+}
+}
+else if( p1 > 0)
+{
+close(fd[1]);  
+    signal(SIGPIPE, sigpipe_handler);
+    write(fd[1], "Hello", 5);
+}
+```
+
+* Hijo cierra fd[1] después de 2 segundos
+
+* Padre intenta escribir en pipe cerrado
+
+* Se genera SIGPIPE
+
+* Se ejecuta el handler una vez
+
+* Padre termina (por el exit() en el handler)
+
+* Hijo queda zombi (no hay wait())
+
+### dup() i dup2()
+```c
+int dup(int fdold)
+int dup2(int fdold, int fdnew)
+```
+dup: utilitza el descriptor de fitxer lliure més petit per duplicar el descriptor de fitxer fdold.
+
+dup2: fa que fdnew sigui una còpia de fdold, tancant fdold si és necessari.
+
+ls | wc -l:
+```c
+int main(int argc, char *argv[]){
+int fd[2];
+char *p1[] = {"ls", NULL};
+char *p2[] = {"wc", "-l", NULL};
+if (pipe(fd)<0){ perror("Error de creació del pipe fd[]");exit(-1);}
+
+int pid1;int pid2;
+switch (pid1 = fork()){
+    case -1: perror("Error fork()"); exit(-2); break;
+    case 0: 
+    if (close(fd[0]) == -1) perror("close 1");
+    if (fd[1] != STDOUT_FILENO) {              
+        if (dup2(fd[1], STDOUT_FILENO) == -1)
+            perror("dup2 1");
+        if (close(fd[1]) == -1)
+            perror("close 2");
+    }
+    execlp("ls", "ls", (char *) NULL);          
+    perror("execlp ls");
+}
+switch (pid2 = fork()){
+    case -1: perror("Error fork()"); exit(-2); break;
+    case 0: 
+     if (close(fd[1]) == -1)  perror("close 3");
+    if (fd[0] != STDIN_FILENO) {              
+        if (dup2(fd[0], STDIN_FILENO) == -1)
+            perror("dup2 2");
+        if (close(fd[0]) == -1)
+            perror("close 4");
+    }
+
+    execlp("wc", "wc", "-l", (char *) NULL);
+    perror("execlp wc");
+}
+waitpid(pid1,0,0); 
+waitpid(pid2,0,0);
+}
+```c
 ## Exemples pràctics
 
 ### P1 Expliques que fa la següent imatge en relació als estats dels processos
@@ -1059,6 +1151,103 @@ normalitat.
  * El pare no acaba
 
  Dijiste "El pare no acaba" - pero en realidad SÍ termina cuando llega al final de main() (hay un return 0 implícito).
+
+ ### Ex13 Quina comanda bash equivalent representa aquest codi?
+ ```c
+ int main() {
+    int p[2];
+    pipe(p);
+    
+    if (fork() == 0) {
+        close(p[0]);
+        dup2(p[1], 1);
+        close(p[1]);
+        execlp("ls", "ls", "-l", NULL);
+    }
+    
+    if (fork() == 0) {
+        close(p[1]);
+        dup2(p[0], 0);
+        close(p[0]);
+        execlp("wc", "wc", "-l", NULL);
+    }
+    
+    close(p[0]);
+    close(p[1]);
+    wait(NULL);
+    wait(NULL);
+    return 0;
+}
+```
+ls -l | wc -l
+
+```c
+int main() {
+    int p1[2], p2[2];
+    pipe(p1);
+    pipe(p2);
+    
+    if (fork() == 0) {
+        close(p1[0]);
+        close(p2[0]);
+        close(p2[1]);
+        dup2(p1[1], 1);
+        execlp("ps", "ps", "aux", NULL);
+    }
+    
+    if (fork() == 0) {
+        close(p1[1]);
+        close(p2[0]);
+        dup2(p1[0], 0);
+        dup2(p2[1], 1);
+        execlp("grep", "grep", "bash", NULL);
+    }
+    
+    if (fork() == 0) {
+        close(p1[0]);
+        close(p1[1]);
+        close(p2[1]);
+        dup2(p2[0], 0);
+        execlp("wc", "wc", "-l", NULL);
+    }
+    
+    close(p1[0]);
+    close(p1[1]);
+    close(p2[0]);
+    close(p2[1]);
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+    return 0;
+}
+```
+ps aux | grep bash | wc -l
+
+### Ex14 Quina serà la sortida del codi?
+```c
+int main() {
+    int p[2];
+    pipe(p);
+    
+    if (fork() == 0) {
+        close(p[0]);
+        printf("Hello");
+        fflush(stdout);
+        write(p[1], "World", 5);
+        close(p[1]);
+        exit(0);
+    } else {
+        close(p[1]);
+        char buf[10];
+        read(p[0], buf, 5);
+        printf("%s", buf);
+        close(p[0]);
+        wait(NULL);
+    }
+    return 0;
+}
+```
+HelloWorld
 
 ### Reflexions Personals
 ![alt text](image-22.png)
