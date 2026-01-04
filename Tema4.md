@@ -1,7 +1,7 @@
 # 🖥️ Apunts de Sistemes Operatius - TEMA 4
 
 ## 📋 Índex
-- [Setmana 2 - Planificació de processos](#setmana-2--- Planificació de processos)
+- [Tema 4- Planificació de processos](##🎯 TEMA 4 - Planificació de Processos )
 - [Exemples Pràctics](#exemples-pràctics)
 - [Dubtes i Preguntes](#dubtes-i-preguntes)
 - [Reflexions Personals](#reflexions-personals)
@@ -12,11 +12,11 @@
 
 ### Conceptes bàsics
 Cicles de burst:
-![alt text](image-28.png)
+![alt text](images/image-28.png)
 Alterna entre períodes d'activtat intensiva d'ús del processador (CPU) i períodes d'activtat d'entrada/sortida (E/S)
 
 Situació 1:
-![alt text](image-30.png)
+![alt text](images/image-30.png)
 
 * 1: El SO carrega el procés a memòria principal
 * 2: El planificador selecciona el procés
@@ -24,7 +24,7 @@ Situació 1:
 * 4: L'usuari interactua amb l'aplicació.
 
 Execució concurrent:
-![alt text](image-31.png)
+![alt text](images/image-31.png)
 Definció segons la IA: La ejecución concurrente ocurre cuando múltiples procesos/tareas (APP1 y APP2) comparten el mismo procesador y avanzan en su ejecución de forma aparentemente simultánea, aunque en realidad el procesador va alternando rápidamente entre ellos.
 
 Si s'hagués de posar passos al igual que abans:
@@ -36,13 +36,13 @@ Si s'hagués de posar passos al igual que abans:
 * 5 L'usuari interactua amb les aplicacions.
 
 ### Monoprogramat vs Multiprogramació
-![alt text](image-32.png)
+![alt text](images/image-32.png)
 Monoprogramat: Només un procés a la memòria. APP2 ha d'esperar que APP1 acabi.
-![alt text](image-33.png)
+![alt text](images/image-33.png)
 Multiprogramat: Múltiples processos a la memòria. APP2 pot ser carregat i executat mentre APP1 està en espera o en execució.
 
 #### Objectius del planificador
-![alt text](image-34.png)
+![alt text](images/image-34.png)
 * Tenim múltiples processos carregats a memòria principal que competeixen per recursos. Després el planificador ha de seleccioanr quin d'aquests processos s'ha de seleccionar primer tal que cumpleixi aquests tres requeriments(IA):
 
 * 1.Optimización de los recursos ⚙️:
@@ -58,7 +58,7 @@ Multiprogramat: Múltiples processos a la memòria. APP2 pot ser carregat i exec
     * Cumplir con los requisitos de cada aplicación
     * Mantener el sistema responsive y funcional
 #### Funcionament del planificador.
-![alt text](image-36.png)
+![alt text](images/image-36.png)
 
 
 * Process: representación lógica del programa en ejecución. Tiene pid, priority, state (Ready, Running, Waiting, Terminated), y un puntero al PCB.
@@ -80,7 +80,7 @@ Multiprogramat: Múltiples processos a la memòria. APP2 pot ser carregat i exec
 Planificació: algorisme que selecciona una d'entre un conjunt de tasques d'una llista. Poden haver-hi diferents planificadors en un sistema, planificador de la CPU ( més important) i dels diferents dispositius d'E/S.
 
 ##### Quan s’ha de planificar (Estats dels processos) ?
-![](image-37.png)
+![](images/image-37.png)
 
 * Paso 1: Proceso en Ejecución → Evento Ocurre:El proceso running encuentra un evento:
 ```c
@@ -100,7 +100,7 @@ text: Proceso elegido ocupa el CPU y ejecuta
 
 ### Apropació.
 
-![alt text](image-38.png)
+![alt text](images/image-38.png)
 
 El SO decideix cuantes unitats de temps ha d'estar cada procés al planificador. Com a consqüencia hi ha més canvis de context. Si tenim major cost d'apropiació, impliquen més interrupcions periodiques. Afavorim a que els procés amb més prioritat tinguin més justicía i equitat.
 
@@ -111,14 +111,14 @@ El SO decideix cuantes unitats de temps ha d'estar cada procés al planificador.
 * Priorització: Preferència a processos amb més urgència.
 
 És impossible tenir els tres a la vegada, ho associo amb aquesta imatge:
-![alt text](image-39.png)
+![alt text](images/image-39.png)
 
 ### Criteris a l'hora d'escoliir un algorisme
 
 * Utilització de la CPU: % de temps d’ocupació.
 * Productivitat: Nº de processos completats per unitat de temps.
 * Temps de retorn: Temps total des que un procés s’envia fins que es completa, incloent temps d’espera i execució.
-![alt text](image-40.png)
+![alt text](images/image-40.png)
 * Temps d’espera: Temps que un procés roman a la cua de preparats.
 * Temps de resposta: Temps entre una sol·licitud de l’usuari i la primera resposta
 
@@ -147,7 +147,7 @@ El SO decideix cuantes unitats de temps ha d'estar cada procés al planificador.
 
 * Cues Multinivell sense retroalimentació: 
 
-![alt text](image.png)
+![alt text](images/image.png)
 La cua de preparats es composa de diferents cues, on cadascuna de les quals pot implementar un algorisme de planiﬁcació independent de la resta. Cada procés està assignat a una cua segons la seva prioritat. Primer es tria un procés (si és que n’hi ha algun) de la cua més prioritària (segons l’algoris- me de planiﬁcació associat), a continuació es continua per la cua amb prioritat immediatament inferior, i així successivament ﬁns la cua menys prioritària.
 
 * Cues Multinivell amb retroalimentació:  cues multinivell on els processos poden moure’s entre cues. Estan pensades per evitar que els processos (de les cues menys prioritàries) entrin en inanició segons els criteris següents:   
