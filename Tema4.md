@@ -128,13 +128,130 @@ El SO decideix cuantes unitats de temps ha d'estar cada procés al planificador.
 
 ### Objectius dels criteris de planificació
 
-Te has quedado aquí
+* Minimitzar el temps de resposta 
+* Maximitzar el rendiment
+* Justícia ( Compartir la CPU entre els usuaris de manera equitativa)
+* Planificació òptima
 
-### Algorismes de planificaió
+### Algorismes de planificaió. Definicions
+
+* FIFO (First In First Out): el primer procés en entrar (en la cua de preparats) serà també el primer procés en ser despatxat. Sol utilitzar-se en sistemes tipus batch. 
+
+* SJF (Shortest Job First): el procés més curt (en temps de CPU) primer. Algorisme òptim. No es pot implementar perquè a priori no es sap el temps de CPU que requerirà un procés. Suposeu per exemple que prenem com índex de rendiment el Temps mig de Retorn d’un conjunt de processos. El temps de retorn total (suma dels temps de retorn de cada procés) és el més petit possible (òptim). Això és així perquè l’ordre d’execució dels processos es realitza segons el temps d’execució que necessiten (com més/menys temps requereixi un procés, més tard/aviat s’executarà). Com que el temps de retorn de cada procés és l’òptim, també ho serà la seva mitja. 
+
+* SRTF: Versió apropiativa de SJF.
+
+* Prioritats: el procés amb més prioritat primer.
+
+* Round-Robin: els processos s’executen durant un Quàntum: temps màxim d’execu- ció ininterrompuda dins de la CPU. Després abandonen la CPU i s’insereixen al ﬁnal de la cua de preparats (que suposarem FIFO). Serveix per implementar sistemes de temps compartit 
+
+* Cues Multinivell sense retroalimentació: 
+
+![alt text](image.png)
+La cua de preparats es composa de diferents cues, on cadascuna de les quals pot implementar un algorisme de planiﬁcació independent de la resta. Cada procés està assignat a una cua segons la seva prioritat. Primer es tria un procés (si és que n’hi ha algun) de la cua més prioritària (segons l’algoris- me de planiﬁcació associat), a continuació es continua per la cua amb prioritat immediatament inferior, i així successivament ﬁns la cua menys prioritària.
+
+* Cues Multinivell amb retroalimentació:  cues multinivell on els processos poden moure’s entre cues. Estan pensades per evitar que els processos (de les cues menys prioritàries) entrin en inanició segons els criteris següents:   
+    
+    • Quan un procés ha estat despatxat un determinat nombre de cops dins de la CPU, es mou a una cua menys prioritària.
+
+    • Quan un procés ha estat en inanició un determinat temps, es mou a una cua més prioritària.
+
+### Caracteristiques dels algorismes de Planifiació
+
+* FIFO (First In First Out):
+
+    * Simplicitat: Algorisme senzill d’implementar i comprendre.
+
+    * No apropiatiu: Un procés s’executa fins a la seva finalització o bloqueig.
+
+    * Garantia de no inanició: Tots els processos eventualment s’executen (sota la suposició que acaben).
+
+    * Efecte Convoy: Processos curts poden quedar bloquejats per processos llargs, incrementant el temps d’espera mitjà.
+* SJF (Shortest Job First)
+    * Pot provocar inanició? Sí, qualsevol política que prioritzi una propietat pot provocar inanició.
+    * Pot provocar convoy? Sí, qualsevol política no apropiativa pot provocar convoy.
+    * Redueix el temps de retorn? Sí, redueix el temps mitjà de finalització si i només si tots els processos arriben alhora.
+    * Requereix coneixement previ del temps de burst? Sí, és un dels seus inconvenients principals.
+
+* SRTF
+    * SRTF (Shortest Remaining Time First) és una política òptima pel temps de resposta mitjà.
+    * Cap altra política pot superar SRTF en aquest criteri.    
+    * Es fa servir sovint com a referència de comparació amb altres algorismes.
+
+* Prioritats
+    * En cas d’empat, es pot aplicar un altre algorisme (habitualment FIFO).
+    * Les prioritats poden ser estàtiques o dinàmiques.
+    * L’envelliment és una estratègia utilitzada per abordar el problema d’inanició que pot sorgir en els algorismes de planificació basats en prioritats.
+
+* Round-Robin
+
+    * Cada procés rep un quantum de temps per executar-se.
+    * Quan el quantum expira, el procés és interromput i col·locat al final de la cua de preparats.
+    * Cap procés pot monopolitzar la CPU durant un temps determinant (q).
+    * Utilitza una cua FIFO per gestionar els processos preparats.
+    * Utilitza una interrupció de rellotge per implementar el quantum de temps.
+    * És un algorisme apropiatiu.
+    * A UNIX, per exemple, s’utilitzen diferents quantums per a processos d’usuari i del sistema per equilibrar la resposta i l’eficiència 
+    q=100ms per a processos d’usuari.
+    q=10ms  per a processos del sistema.
+    El overhead del canvi de context és d’aproximadament 0.1ms−1ms
+    Aquest valor és petit comparat amb la durada del quantum, però rellevant si els quantum són molt petits.
+
+* Cues Multinivell sense retroalimentació
+
+* Cues Multinivell amb retroalimentació
+    * Quantum de Temps Variable: Cada cua de prioritat té un quantum de temps específic i progressivament més llarg en cues de menor prioritat, optimitzant així la gestió de processos de llarga durada.
+
+    * Exemple: Cues Round Robin amb quantums exponencials (1ms, 2ms, 4ms, etc.) per a processos de llarga durada.
+
+    * Moviment Dinàmic entre Cues: Si un procés no finalitza dins del seu quantum assignat, es mou a una cua amb menor prioritat, on rebrà un quantum més llarg però menor prioritat d’execució.
+
+    * Exemple: Els processos amb alta demanda de CPU descendeixen ràpidament de prioritat, evitant que monopolitzin la CPU. Els processos de curta durada i/o intensius en E/S mantenen la prioritat alta, maximitzant el seu accés a la CPU i reduint la latència.
+
+    * Estructura Flexible de Cues: Les cues amb retroalimentació permeten que els processos amb canvis de comportament puguin ajustar la seva posició.
+
+    * Temps de CPU per Cua: Cada cua rep un percentatge del temps de CPU: P. ex., cues interactives reben un percentatge més alt per a reduir el temps de resposta.
+
+    * Inversió de prioritats: Mantenir el programa en una cua de major prioritat per garantir temps de CPU preferent i una resposta ràpida en les decisions del joc.
+
+### Predir el futur?
+Sabem que el SRTF seria el millor algorisme de planificació si poguessim conéixer el futur. Però com el pordem predir? I seria de manera exacta?
+
+La resposta es que sí, i es que podem mirar el comportament que ha tingut un procés en el passar per poder predir com es comptará en el futur, per exemple, un editor de text pasa molt de temps esperant a que es premi una tecla E/S, i només utilitza la CPU si s'escriu.
+
+Una estratègia comuna és utilitzar estimacions basades en l'historial de comportament dels processos. Molts programes mostren patrons repetitius en la seva utilització de la CPU i I/O. Si els processos tenen un comportament aleatori, aquesta estratègia no seria útil.
+Així podem introduir la següent fórmula:
+
+$t_n = f(t_{n-1}, t_{n-2}, t_{n-3}, \ldots)$
+
+* On: $t_n$ és la durada estimada del següent burst de CPU. $f$ és una funció que utilitza els bursts anteriors per fer la predicció.
+* $t_{n-1}, t_{n-2}$ son les duracions reals dels bursts anteriors
+* $f$ es una funció de predicció
 
 
 
-## Exemples pràctics
+
+
+
+
+
+
+## Exemples pràctics.
+
+### Analisi d'exerici de FIFO (CLASSE)
+|  proc  | $t_a$ | $t_{cpu}$ |
+|:---------:|:---------:|:-------------:|
+| 🟢 **P1** |     0     |      20       |
+| 🔵 **P2** |     5     |       5       |
+| 🟣 **P3** |     6     |       5       |
+
+1.  **Efecte Convoy:** El procés P1 (llarg) bloqueja els processos P2 i P3 (curts), incrementant el temps d'espera.
+2.  **Sensible a l'ordre arribada:** Si P2 o P3 hagués arribat abans que P1, el temps d'espera de P2 hauria estat menor.
+3.  **No apropiatiu:** P1 ocupa la CPU fins a la seva finalització, sense donar oportunitat a P2 i P3.
+4.  **No és adequat per a sistemes interactius o en temps real:** Els usuaris poden experimentar retards significatius en la resposta del sistema, ja que els processos curts poden quedar bloquejats darrere de processos llargs.
+
+## RR - Diagrama de flux
+
 (Exercicis Resolts del llibre de Lleida)
 Enunciat: Donats els processos amb les característiques de la taula 3.1 .
 Doneu el diagrama de gantt i el temps mig de retorn i d’espera pels algorismes a curt plaç següents: 
