@@ -168,22 +168,307 @@ Construcció:
     1.Eliminar tots els nodes corresponents als recursos.
 
     2.Ajustar els arcs perquè apuntin als processos en lloc dels recursos.
-    
-* Si el graf d’espera conté un cicle, hi ha un interbloqueig:
+
+* Si el graf d’espera conté un cicle, hi ha un interbloqueig.
+
+Quan hi ha **múltiples instàncies de cada recurs**, els **cicles en el graf ja no són suficients** per detectar interbloquejos.  
+Ara el problema no és només *qui espera a qui*, sinó **si hi ha prou quantitat de recursos** perquè algun procés pugui acabar.
+
+L’objectiu de l’algorisme és respondre a la pregunta:
+
+> Existeix algun ordre possible d’execució en què tots els processos puguin acabar?
+
+Si la resposta és **no**, hi ha **interbloqueig**.
+
+---
+
+* Idea intuïtiva
+
+- Processos = persones
+- Recursos = monedes de diferents tipus
+- Cada procés:
+  - té alguns recursos
+  - en necessita alguns més per acabar
+- El sistema:
+  - té un nombre limitat de recursos
+
+L’algorisme **simula mentalment** si els processos podrien acabar **en el millor dels casos**.
+
+---
+
+### Estructures de dades
+
+#### Vector **E** — Recursos totals
+
+Indica el nombre total d’instàncies de cada recurs.
+
+$\mathbf{E} = (E_1, E_2, \ldots, E_m)$
+
+
+---
+
+#### Matriu **C** — Recursos assignats
+
+$C_{ij} = \text{nombre d’instàncies del recurs } R_j \text{ assignades al procés } P_i$
+
+Indica **qui té què actualment**.
+
+---
+
+#### Matriu **R** — Recursos sol·licitats
+
+$R_{ij} = \text{nombre d’instàncies del recurs } R_j \text{ que el procés } P_i \text{ encara necessita}$
+
+No és el màxim, sinó **el que li falta ara mateix** per acabar.
+
+---
+
+### Vector **A** — Recursos disponibles
+
+$A_j = E_j - \sum_i C_{ij}$
+
+Indica quants recursos **estan lliures** en cada moment.
+
+---
+
+## Condició bàsica de bloqueig
+
+Si un procés demana més recursos dels disponibles:
+
+$R_{ij} > A_j \Rightarrow P_i \text{ es bloqueja}$
+
+És una condició necessària però no suficient per detectar interbloqueig.
+
+---
+
+## Algorisme de detecció (explicat pas a pas)
+
+### Pas 1 — Inicialització
+- Tots els processos es consideren **no marcats**.
+
+---
+
+### Pas 2 — Cerca d’un procés executable
+- Busquem un procés no marcat \(P_i\) tal que:
+$\mathbf{R}_i \le \mathbf{A}$
+
+És a dir:
+> Tot el que necessita està disponible ara mateix.
+
+Aquest procés **podria acabar**.
+
+---
+
+### Pas 3 — Simulació d’execució
+Si trobem un procés executable:
+- L’assumim acabat
+- Allibera tots els seus recursos
+- Actualitzem:
+$\mathbf{A} = \mathbf{A} + \mathbf{C}_i$
+- Marquem el procés com a segur
+- Tornem al pas 2
+
+---
+
+### Pas 4 — Finalització
+Si no existeix cap procés que compleixi¡$\mathbf{R}_i \le \mathbf{A}$
+- L’algorisme s’atura
+
+---
+
+### Pas 5 — Detecció d’interbloqueig
+- **Tots els processos no marcats** estan en interbloqueig
+
+No existeix cap ordre d’execució que els permeti acabar.
+
+---
+
+## Assumpció important
+
+L’algorisme assumeix el **pitjor cas**:
+- Els processos **no alliberen recursos fins que acaben**
+- No hi ha cooperació
+
+Això el fa **conservador**:
+- Si detecta interbloqueig → segur que n’hi ha
+
+---
+
+## Comparació amb el cas d’una sola instància
+
+| Cas | Criteri de detecció |
+|----|---------------------|
+| 1 instància per recurs | Cicle en el graf |
+| M instàncies | Cap procés compleix $\mathbf{R}_i \le \mathbf{A}$ |
 
 
 
 
 
+* Algorisme d'evitació:
+### Algorsime del Banquer
+* El SO només concendirà un recurs si està segur que, pasi el que pasi , després ningú es quedi bloquejat.
+* Metàfora del banc:
+    * El banc té diners limitats (recursos).
 
-* Algorisme de recuperació:
+    * Cada client (proceso):
+
+        * ja té algo de calers
+
+        * podria demanar més en el futur
+
+    * El banc vol evitar bancarrota (deadlock).
+
+* Estat segur: Un estat és segur si existeix almenys un ordre en què tots els processos poden:
+    * obtenir els recursos que falten,
+    * acabar,
+    * i alliberar els recursos per als següents
+* Seqüencia segura (P1,P2,...,Pn) és segura si:
+    * P1 pot acabar amb els recursos disponibles,
+    * P2 pot acabar amb els recursos dipsonibles + els que allibera p1.
+    * Seguim així fins a n.
+* Estat insegur: Si no existeix cap seqüencia segura.
+
+### Aplicació del Algorisme per a 1 ssol recurs.
+* Només hi ha:
+    * Un tipus de recurs
+    * diverses unitats indèntique
+* Per a cada procés coneixem:
+    * Assignat: quants recursos té ara
+    * Max: quants en podria necesssitar com a màxim
+* Es defineix $Necessita​= Max − Assignat​$
+* Procés pot acabar si: $Necessita <= Disponibles$
+
+---
 
 
+### Exemple 1 — Estat segur trivial
 
+#### Dades
 
+| Procés | Assignat | Max | Necessita |
+|------|----------|-----|-----------|
+| A | 0 | 6 | 6 |
+| B | 0 | 5 | 5 |
+| C | 0 | 4 | 4 |
+| D | 0 | 7 | 7 |
 
+Recursos disponibles: **10**
 
+#### Anàlisi
 
+- Tots els processos tenen Necessita ≤ 10.
+- Qualsevol procés pot acabar primer.
+- En acabar, no bloqueja la resta.
+
+#### Conclusió
+
+✅ **Estat segur**  
+Existeixen múltiples seqüències segures.
+
+---
+
+### Exemple 2 — Estat segur (no trivial)
+
+#### Dades
+
+| Procés | Assignat | Max | Necessita |
+|------|----------|-----|-----------|
+| A | 1 | 6 | 5 |
+| B | 1 | 5 | 4 |
+| C | 2 | 4 | 2 |
+| D | 4 | 7 | 3 |
+
+Recursos disponibles: **2**
+
+---
+
+#### Pas 1 — Processos que poden acabar
+
+- A: necessita 5 → ❌
+- B: necessita 4 → ❌
+- C: necessita 2 → ✅
+- D: necessita 3 → ❌
+
+👉 **C pot acabar**
+
+---
+
+#### Pas 2 — Simulem que C acaba
+
+- C allibera 2 recursos  
+- Recursos disponibles = 2 + 2 = **4**
+
+---
+
+#### Pas 3 — Amb 4 recursos disponibles
+
+- B: necessita 4 → ✅
+- D: necessita 3 → ✅
+- A: necessita 5 → ❌
+
+Triem, per exemple, **B**.
+
+---
+
+#### Pas 4 — Simulem que B acaba
+
+- B allibera 1 recurs  
+- Recursos disponibles = 4 + 1 = **5**
+
+---
+
+#### Pas 5 — Amb 5 recursos disponibles
+
+- A: necessita 5 → ✅
+- D: necessita 3 → ✅
+
+Tots els processos poden acabar.
+
+#### Seqüència segura possible
+
+C → B → A → D
+
+#### Conclusió
+
+✅ **Estat segur**
+
+---
+
+### Exemple 3 — Estat insegur
+
+#### Dades
+
+| Procés | Assignat | Max | Necessita |
+|------|----------|-----|-----------|
+| A | 1 | 6 | 5 |
+| B | 2 | 5 | 3 |
+| C | 2 | 4 | 2 |
+| D | 4 | 7 | 3 |
+
+Recursos disponibles: **1**
+
+---
+
+#### Anàlisi
+
+- A: necessita 5 → ❌
+- B: necessita 3 → ❌
+- C: necessita 2 → ❌
+- D: necessita 3 → ❌
+
+👉 **Cap procés pot acabar inicialment**
+
+---
+
+#### Conclusió
+
+❌ **Estat insegur**
+
+No existeix cap seqüència segura.  
+Si el sistema entra en aquest estat, el deadlock és possible.
+
+---
 
 
 
@@ -194,3 +479,4 @@ Construcció:
 ## Dubtes i preguntes
 
 ## Reflexions personals
+-Estic aprenent molt
